@@ -86,6 +86,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #courses{flex:1;background:var(--moss);border:1px solid var(--line);color:var(--chalk);padding:11px 14px;border-radius:999px;font:inherit}
 #banner{background:rgba(232,163,61,.12);border:1px solid rgba(232,163,61,.4);color:var(--chalk);
   padding:11px 14px;border-radius:14px;font-size:13.5px;line-height:1.5;margin:0 0 18px}
+.results .tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);border:1px solid var(--line);padding:1px 6px;border-radius:99px}
 .results li button{display:block;width:100%;text-align:left;background:none;border:0;padding:11px 14px;border-bottom:1px solid var(--line)}
 .results li:last-child button{border-bottom:0}
 
@@ -162,7 +163,7 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
 </div>
 
 <div class="bar">
-  <input id="q" type="search" placeholder="Search a city or course area" autocomplete="off">
+  <input id="q" type="search" placeholder="Search a course or city" autocomplete="off">
   <button id="go">Search</button>
   <button id="gps" class="locate">Use my location</button>
 </div>
@@ -335,35 +336,37 @@ function analyseDay(di){
 
 /* ---------- render ---------- */
 function render(){
-  const today = analyseDay(0);
-  if (!today.slots.length){
-    app.innerHTML = `<p class="msg">No tee slots left today — last ${STATE.holes}-hole tee-off here is
-      ${fmtHour(LAST_TEE[STATE.holes])}. The week below still has room.</p>
-      <div class="holes">
-        <button data-holes="18" aria-pressed="${STATE.holes===18}">18 holes</button>
-        <button data-holes="9" aria-pressed="${STATE.holes===9}">9 holes</button>
-      </div>` + weekHTML();
-    bind(); return;
+  let di = 0, a = analyseDay(0), note = '';
+  if (!a.slots.length){
+    for (let i = 1; i < STATE.data.days.length; i++){
+      const nx = analyseDay(i);
+      if (nx.slots.length){ di = i; a = nx; break; }
+    }
+    if (!di){ app.innerHTML = '<p class="msg">No playable windows in the forecast range.</p>'; return; }
+    note = `<p class="msg" style="padding:0 0 14px">Today is done — last ${STATE.holes}-hole tee-off here is
+      ${fmtHour(LAST_TEE[STATE.holes])}. Here's ${dayName(di)} instead.</p>`;
   }
-  const key = s => s.start.getHours()*60 + s.start.getMinutes();
-  const pick = STATE.sel != null ? (today.slots.find(s => key(s) === STATE.sel) || today.best) : today.best;
+  if (STATE.day !== di){ STATE.day = di; STATE.sel = null; }
 
-  const ribbon = today.slots.map(s => {
+  const key = s => s.start.getHours()*60 + s.start.getMinutes();
+  const pick = STATE.sel != null ? (a.slots.find(s => key(s) === STATE.sel) || a.best) : a.best;
+
+  const ribbon = a.slots.map(s => {
     const h = 20 + (s.score/100) * 54;
     return `<li aria-selected="${s === pick}"><button data-h="${key(s)}"
       aria-label="Tee at ${fmt(s.start)}, score ${s.score}">
       <span class="bar-fill" style="height:${h}px;background:${tone(s.score)}"></span></button></li>`;
   }).join('');
 
-  const alts = today.ranked.filter(s => s !== pick).slice(0,3).map(s =>
+  const alts = a.ranked.filter(s => s !== pick).slice(0,3).map(s =>
     `<button class="alt" data-h="${key(s)}"><span>${fmt(s.start)}</span>
       <span class="alt-score" style="color:${tone(s.score)}">${s.score}</span></button>`).join('');
 
-  app.innerHTML = `
+  app.innerHTML = note + `
    <div class="hero">
-     <div class="place">${esc(STATE.label)} · ${STATE.holes} holes · ${(ROUND_MIN[STATE.holes]/60).toFixed(1).replace('.0','')}h round</div>
-     <h1 class="verdict">${verdictWord(today.best.score)} at <em>${fmt(today.best.start)}</em></h1>
-     <p class="subline">${headline(today)}</p>
+     <div class="place">${esc(STATE.label)} · ${STATE.holes} holes · ${dayName(di)}${di ? ' ' + a.d.date.toLocaleDateString([], {day:'numeric', month:'short'}) : ''}</div>
+     <h1 class="verdict">${verdictWord(a.best.score)} at <em>${fmt(a.best.start)}</em></h1>
+     <p class="subline">${headline(a)}</p>
    </div>
    <div class="holes">
      <button data-holes="18" aria-pressed="${STATE.holes===18}">18 holes</button>
@@ -371,13 +374,19 @@ function render(){
    </div>
    <div class="ribbon-wrap">
      <ul class="ribbon">${ribbon}</ul>
-     <div class="scale"><span>${fmt(today.slots[0].start)}</span>
-       <span>last tee ${fmt(today.lastTee)}</span></div>
+     <div class="scale"><span>${fmt(a.slots[0].start)}</span>
+       <span>last tee ${fmt(a.lastTee)}</span></div>
    </div>
    ${detailHTML(pick)}
-   ${alts ? `<h2 class="sec">Other slots today</h2><div class="alts">${alts}</div>` : ''}
-   ` + weekHTML();
+   ${alts ? `<h2 class="sec">Other slots ${di ? 'that day' : 'today'}</h2><div class="alts">${alts}</div>` : ''}
+   ` + weekHTML(di);
   bind();
+}
+
+function dayName(di){
+  if (di === 0) return 'today';
+  if (di === 1) return 'tomorrow';
+  return STATE.data.days[di].date.toLocaleDateString([], { weekday:'long' });
 }
 
 function detailHTML(w){
@@ -444,9 +453,9 @@ function headline(t){
   return `${t.slots.length} tee slots checked at half-hour steps up to the ${fmtHour(LAST_TEE[STATE.holes])} cut-off — ${note}, so this window keeps the whole round clean, not just the first tee shot.`;
 }
 
-function weekHTML(){
+function weekHTML(focus){
   const rows = STATE.data.days.map((d,i)=>{
-    if (i === 0) return '';
+    if (i === 0 || i === focus) return '';
     const a = analyseDay(i);
     if (!a.best) return '';
     return `<li><span class="day">${d.date.toLocaleDateString([], {weekday:'short'})}<br>
@@ -603,26 +612,68 @@ $('#gps').onclick = () => {
 };
 function fail(m){ app.innerHTML = '<p class="msg err">' + m + '</p>' }
 
-async function search(){
-  const q = $('#q').value.trim(); if (!q) return;
+const FLAT = COURSES.flatMap(([region, list]) => list.map(c => ({ name:c[0], lat:c[1], lon:c[2], region })));
+const norm = t => t.toLowerCase().replace(/[^a-z0-9 ]/g,'');
+
+function matchCourses(q){
+  const n = norm(q); if (n.length < 2) return [];
+  const words = n.split(/\s+/).filter(Boolean);
+  return FLAT.map(c => {
+    const hay = norm(c.name + ' ' + c.region);
+    if (!words.every(w => hay.includes(w))) return null;
+    return { c, rank: hay.startsWith(words[0]) ? 0 : 1 };
+  }).filter(Boolean).sort((a,b)=>a.rank-b.rank).slice(0,7).map(x=>x.c);
+}
+
+function showResults(items){
   const list = $('#results');
+  if (!items.length){ list.hidden = true; list.innerHTML = ''; return; }
+  list.hidden = false;
+  list.innerHTML = items.map(i =>
+    `<li><button data-lat="${i.lat}" data-lon="${i.lon}" data-l="${esc(i.label)}">
+      ${i.kind === 'course' ? '<span class="tag">course</span> ' : ''}${esc(i.title)}
+      <span style="color:var(--muted)"> ${esc(i.sub || '')}</span></button></li>`).join('');
+  list.querySelectorAll('button').forEach(b => b.onclick = () => {
+    list.hidden = true; $('#q').value = b.dataset.l;
+    load(b.dataset.lat, b.dataset.lon, b.dataset.l);
+  });
+}
+
+function localResults(q){
+  return matchCourses(q).map(c => ({
+    kind:'course', title:c.name.split(',')[0], sub:c.region,
+    label:c.name, lat:c.lat, lon:c.lon
+  }));
+}
+
+let searchTimer;
+$('#q').addEventListener('input', () => {
+  const q = $('#q').value.trim();
+  showResults(localResults(q));
+  clearTimeout(searchTimer);
+  if (q.length >= 3) searchTimer = setTimeout(() => search(true), 350);
+});
+
+async function search(quiet){
+  const q = $('#q').value.trim(); if (!q) return;
+  const local = localResults(q);
+  showResults(local);
   try {
     const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=5&name=' + encodeURIComponent(q));
     const j = await r.json();
-    if (!j.results){ list.hidden = true; return fail('No place matched “' + esc(q) + '”. Try a nearby city.'); }
-    list.hidden = false;
-    list.innerHTML = j.results.map(p =>
-      `<li><button data-lat="${p.latitude}" data-lon="${p.longitude}" data-l="${esc(p.name + (p.admin1 ? ', ' + p.admin1 : '') + ', ' + p.country)}">
-        ${esc(p.name)} <span style="color:var(--muted)">${esc([p.admin1, p.country].filter(Boolean).join(', '))}</span></button></li>`).join('');
-    list.querySelectorAll('button').forEach(b => b.onclick = () => {
-      list.hidden = true; $('#q').value = b.dataset.l;
-      load(b.dataset.lat, b.dataset.lon, b.dataset.l);
-    });
+    const places = (j.results || []).map(p => ({
+      kind:'place', title:p.name, sub:[p.admin1, p.country].filter(Boolean).join(', '),
+      label:p.name + (p.admin1 ? ', ' + p.admin1 : '') + ', ' + p.country,
+      lat:p.latitude, lon:p.longitude
+    }));
+    if (local.length || places.length) showResults([...local, ...places]);
+    else if (!quiet) showBanner('Nothing matched that. Try a nearby city, or browse the course list.');
   } catch {
-    list.hidden = true;
-    showBanner('Place search needs an outside connection, which this preview window blocks. Use the course list below, or download the file and open it in a browser to search anywhere.');
+    if (!local.length && !quiet)
+      showBanner('City search needs an outside connection, which this window blocks. The course list still works offline.');
   }
 }
+
 $('#go').onclick = search;
 $('#q').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
 
