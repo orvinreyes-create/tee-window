@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tee Window — when to play today</title>
+<title>Tee Window</title>
+<meta name="apple-mobile-web-app-title" content="Tee Window">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0E1A14">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
@@ -601,15 +604,6 @@ sel.onchange = () => {
   load(la, lo, sel.options[sel.selectedIndex].text);
 };
 
-$('#gps').onclick = () => {
-  if (!navigator.geolocation) return fail('This browser will not share a location. Pick a course or search a place instead.');
-  app.innerHTML = '<p class="msg">Finding you…</p>';
-  navigator.geolocation.getCurrentPosition(
-    p => load(p.coords.latitude.toFixed(4), p.coords.longitude.toFixed(4), 'Your location'),
-    () => fail('Location sharing is off in this preview window. Pick a course below, or download the file and open it in a browser to use GPS.'),
-    { timeout: 10000 }
-  );
-};
 function fail(m){ app.innerHTML = '<p class="msg err">' + m + '</p>' }
 
 const FLAT = COURSES.flatMap(([region, list]) => list.map(c => ({ name:c[0], lat:c[1], lon:c[2], region })));
@@ -677,8 +671,36 @@ async function search(quiet){
 $('#go').onclick = search;
 $('#q').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
 
-/* first paint: Manila-area default until a location is chosen */
-load(14.5764, 121.0851, 'Pasig, Philippines');
+function nearestLabel(lat, lon){
+  let best = null;
+  FLAT.forEach(c => {
+    const dx = (c.lat - lat) * 111, dy = (c.lon - lon) * 107;
+    const d = Math.hypot(dx, dy);
+    if (!best || d < best.d) best = { d, c };
+  });
+  return best && best.d < 12 ? 'Near ' + best.c.name.split(',')[0] : 'Your location';
+}
+
+function useGPS(auto){
+  if (!navigator.geolocation){
+    if (!auto) fail('This browser will not share a location. Pick a course or search instead.');
+    return;
+  }
+  if (!auto) app.innerHTML = '<p class="msg">Finding you…</p>';
+  navigator.geolocation.getCurrentPosition(
+    p => {
+      const la = +p.coords.latitude.toFixed(4), lo = +p.coords.longitude.toFixed(4);
+      load(la, lo, nearestLabel(la, lo));
+    },
+    () => { if (!auto) fail('Location sharing is off here. Pick a course below, or open the site in Safari to use GPS.'); },
+    { timeout: 10000, maximumAge: 300000 }
+  );
+}
+$('#gps').onclick = () => useGPS(false);
+
+/* first paint: Metro Manila, then quietly ask for the real location */
+load(14.5800, 121.0000, 'Metro Manila');
+useGPS(true);
 </script>
 </body>
 </html>
