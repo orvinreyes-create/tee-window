@@ -22,6 +22,7 @@
   --track:rgba(242,237,227,.09);
   --glow:#1B3226;
   --chip-ink:#12190F;
+  --on-amber:#17130A;
 }
 :root[data-theme="light"]{
   --pine:#F6F4EC;
@@ -37,12 +38,13 @@
   --track:rgba(23,37,28,.09);
   --glow:#E4EDE2;
   --chip-ink:#FFFFFF;
+  --on-amber:#FFF8EC;
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]):not([data-theme="light"]){
     --pine:#F6F4EC; --moss:#FFFFFF; --moss-2:#EDF0E9; --chalk:#17251C;
     --muted:#5F7267; --amber:#B87515; --good:#3E9C6A; --fair:#A08A18; --poor:#C0492F;
-    --line:rgba(23,37,28,.14); --track:rgba(23,37,28,.09); --glow:#E4EDE2; --chip-ink:#FFFFFF;
+    --line:rgba(23,37,28,.14); --track:rgba(23,37,28,.09); --glow:#E4EDE2; --chip-ink:#FFFFFF; --on-amber:#FFF8EC;
   }
 }
 *{box-sizing:border-box}
@@ -62,6 +64,12 @@ h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0;letter-spac
 button{font:inherit;color:inherit;cursor:pointer}
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:6px}
 
+.topline{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.wordmark{font-family:Fraunces,serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
+.theme{display:flex;background:var(--moss);border:1px solid var(--line);border-radius:999px;padding:3px}
+.theme button{background:none;border:0;padding:5px 11px;border-radius:999px;font-size:13px;color:var(--muted)}
+.theme button[aria-pressed="true"]{background:var(--moss-2);color:var(--chalk);font-weight:700}
+
 /* ── location bar ── */
 .bar{display:flex;gap:8px;align-items:center;margin-bottom:22px}
 .bar input{
@@ -73,8 +81,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   background:var(--moss);border:1px solid var(--line);color:var(--chalk);
   padding:11px 14px;border-radius:999px;white-space:nowrap;
 }
-.bar button.locate{background:var(--amber);color:#FFF8EC;border-color:transparent;font-weight:700}
-:root[data-theme="light"] .bar button.locate{color:#FFF8EC}
+.bar button.locate{background:var(--amber);color:var(--on-amber);border-color:transparent;font-weight:700}
 .results{list-style:none;margin:-14px 0 20px;padding:0;background:var(--moss);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
 #courses{flex:1;background:var(--moss);border:1px solid var(--line);color:var(--chalk);padding:11px 14px;border-radius:999px;font:inherit}
 #banner{background:rgba(232,163,61,.12);border:1px solid rgba(232,163,61,.4);color:var(--chalk);
@@ -92,7 +99,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* ── the ribbon: the day, sunrise to sunset ── */
 .ribbon-wrap{margin:0 0 10px}
 .ribbon{
-  display:flex;gap:2px;height:74px;align-items:flex-end;
+  display:flex;gap:1.5px;height:74px;align-items:flex-end;
   padding:0;margin:0;list-style:none;
 }
 .ribbon li{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
@@ -123,7 +130,17 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* ── week ── */
 h2.sec{font-size:20px;margin:26px 0 12px}
 .week{list-style:none;margin:0;padding:0}
-.week li{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.week li{display:grid;grid-template-columns:62px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.week .date{font-weight:400;color:var(--muted);font-size:12.5px}
+.tl-head{font-size:15px;margin:18px 0 10px;padding-top:14px;border-top:1px solid var(--line)}
+.timeline{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.timeline li{display:grid;grid-template-columns:56px 62px 1fr auto;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
+.timeline .tl-time{color:var(--chalk);font-weight:700}
+.timeline .tl-note{text-align:right;white-space:nowrap}
+.alts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.alts .alt{display:flex;align-items:center;gap:8px;background:var(--moss);border:1px solid var(--line);
+  border-radius:999px;padding:8px 14px}
+.alt-score{font-family:Fraunces,serif;font-weight:800}
 .week .day{font-weight:700}
 .week .when{color:var(--muted);font-size:14px}
 .chip{font-family:Fraunces,serif;font-weight:800;font-size:17px;padding:2px 10px;border-radius:8px;color:var(--chip-ink)}
@@ -134,6 +151,15 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
 </style>
 </head>
 <body>
+
+<div class="topline">
+  <span class="wordmark">Tee Window</span>
+  <div class="theme" role="group" aria-label="Appearance">
+    <button data-theme-set="auto" aria-pressed="true">Auto</button>
+    <button data-theme-set="light" aria-pressed="false">Light</button>
+    <button data-theme-set="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
 
 <div class="bar">
   <input id="q" type="search" placeholder="Search a city or course area" autocomplete="off">
@@ -158,7 +184,9 @@ const $ = s => document.querySelector(s);
 const app = $('#app');
 let STATE = { holes: 18, lat: null, lon: null, label: '', data: null, sel: null, day: 0 };
 
-const ROUND_MIN = { 18: 258, 9: 126 };   // 4h18 / 2h06 including warm-up walk
+const ROUND_MIN  = { 18: 258, 9: 126 };   // 4h18 / 2h06 including warm-up walk
+const LAST_TEE   = { 18: 13.0, 9: 15.0 };  // club cut-off, decimal hours
+const STEP_MIN   = 30;                     // tee slots every half hour
 
 /* ---------- scoring ---------- */
 function hourScore(h){
@@ -173,20 +201,34 @@ function hourScore(h){
   return { score: Math.max(0, Math.round(s)), why };
 }
 
-function windowScore(hours, startIdx, mins, sunsetT){
-  const span = mins / 60, need = Math.ceil(span);
-  const slice = hours.slice(startIdx, startIdx + need);
-  if (slice.length < need) return null;
-  const scores = slice.map(h => hourScore(h).score);
-  const avg = scores.reduce((a,b)=>a+b,0) / scores.length;
-  const worst = Math.min(...scores);
-  let s = avg - (avg - worst) * 0.55;                 // a bad patch ruins a round
-  const finish = new Date(slice[0].t.getTime() + mins*60000);
-  const darkMin = Math.max(0, (finish - sunsetT) / 60000);
-  s -= Math.min(70, darkMin * 0.55);                  // finishing in the dark
+function windowScore(hours, startTime, mins, sunsetT){
+  const end = new Date(startTime.getTime() + mins*60000);
+  const parts = [];
+  hours.forEach(h => {
+    const a = h.t.getTime(), b = a + 3600000;
+    const overlap = Math.min(b, end.getTime()) - Math.max(a, startTime.getTime());
+    if (overlap > 0) parts.push({ h, mins: overlap/60000, ...hourScore(h) });
+  });
+  if (!parts.length) return null;
+  const total = parts.reduce((s,p)=>s+p.mins, 0);
+  if (total < mins - 61) return null;                  // forecast runs out
+  const avg = parts.reduce((s,p)=>s + p.score * p.mins, 0) / total;
+  const worst = Math.min(...parts.map(p=>p.score));
+  let s2 = avg - (avg - worst) * 0.55;                 // a bad patch ruins a round
+  const darkMin = Math.max(0, (end - sunsetT) / 60000);
+  s2 -= Math.min(70, darkMin * 0.55);
   const agg = { rain:0, wind:0, heat:0, storm:0 };
-  slice.forEach(h => { const w = hourScore(h).why; for (const k in agg) agg[k] += w[k]/slice.length; });
-  return { score: Math.max(0, Math.round(s)), start: slice[0].t, finish, slice, agg, darkMin, worst };
+  parts.forEach(p => { for (const k in agg) agg[k] += p.why[k] * p.mins / total; });
+  return {
+    score: Math.max(0, Math.round(s2)), start: startTime, finish: end,
+    slice: parts.map(p=>p.h), parts, agg, darkMin, worst
+  };
+}
+
+function troubleOf(why){
+  const worst = Object.entries(why).sort((a,b)=>b[1]-a[1])[0];
+  if (worst[1] < 6) return null;
+  return { key: { rain:'Rain', wind:'Wind', heat:'Heat', storm:'Storms' }[worst[0]], pen: worst[1] };
 }
 
 const tone = s => s >= 80 ? 'var(--good)' : s >= 62 ? 'var(--fair)' : s >= 40 ? 'var(--amber)' : 'var(--poor)';
@@ -272,38 +314,54 @@ function demoData(lat){
 function analyseDay(di){
   const { hours, days } = STATE.data, d = days[di];
   const mins = ROUND_MIN[STATE.holes];
-  const now = new Date();
-  const earliest = new Date(Math.max(d.sunrise.getTime(), di === 0 ? now.getTime() : 0));
+  const cap = new Date(d.date); cap.setHours(Math.floor(LAST_TEE[STATE.holes]),
+    (LAST_TEE[STATE.holes] % 1) * 60, 0, 0);
+  const lastTee = new Date(Math.min(cap.getTime(), d.sunset.getTime() - mins*60000));
+  let t = new Date(d.sunrise);
+  t.setMinutes(t.getMinutes() > 30 ? 60 : 30, 0, 0);          // first slot after sunrise
+  if (di === 0){
+    const now = new Date();
+    if (now > t){ t = new Date(now); t.setMinutes(t.getMinutes() > 30 ? 60 : 30, 0, 0); }
+  }
   const slots = [];
-  hours.forEach((h,i)=>{
-    if (h.t < earliest - 3600000 || h.t > d.sunset) return;
-    if (h.t.toDateString() !== d.date.toDateString()) return;
-    const w = windowScore(hours, i, mins, d.sunset);
+  while (t <= lastTee){
+    const w = windowScore(hours, new Date(t), mins, d.sunset);
     if (w) slots.push(w);
-  });
-  return { d, slots, best: slots.length ? slots.reduce((a,b)=> b.score > a.score ? b : a) : null };
+    t = new Date(t.getTime() + STEP_MIN*60000);
+  }
+  const ranked = [...slots].sort((a,b)=>b.score - a.score);
+  return { d, slots, lastTee, best: ranked[0] || null, ranked };
 }
 
 /* ---------- render ---------- */
 function render(){
   const today = analyseDay(0);
   if (!today.slots.length){
-    app.innerHTML = shell('<p class="msg">Daylight has run out here for a full ' + STATE.holes +
-      '. The week below still has room.</p>') + weekHTML();
+    app.innerHTML = `<p class="msg">No tee slots left today — last ${STATE.holes}-hole tee-off here is
+      ${fmtHour(LAST_TEE[STATE.holes])}. The week below still has room.</p>
+      <div class="holes">
+        <button data-holes="18" aria-pressed="${STATE.holes===18}">18 holes</button>
+        <button data-holes="9" aria-pressed="${STATE.holes===9}">9 holes</button>
+      </div>` + weekHTML();
     bind(); return;
   }
-  const pick = STATE.sel != null ? today.slots.find(s => s.start.getHours() === STATE.sel) || today.best : today.best;
+  const key = s => s.start.getHours()*60 + s.start.getMinutes();
+  const pick = STATE.sel != null ? (today.slots.find(s => key(s) === STATE.sel) || today.best) : today.best;
 
   const ribbon = today.slots.map(s => {
-    const h = 24 + (s.score/100) * 50;
-    return `<li aria-selected="${s === pick}"><button data-h="${s.start.getHours()}"
+    const h = 20 + (s.score/100) * 54;
+    return `<li aria-selected="${s === pick}"><button data-h="${key(s)}"
       aria-label="Tee at ${fmt(s.start)}, score ${s.score}">
       <span class="bar-fill" style="height:${h}px;background:${tone(s.score)}"></span></button></li>`;
   }).join('');
 
-  const head = `
+  const alts = today.ranked.filter(s => s !== pick).slice(0,3).map(s =>
+    `<button class="alt" data-h="${key(s)}"><span>${fmt(s.start)}</span>
+      <span class="alt-score" style="color:${tone(s.score)}">${s.score}</span></button>`).join('');
+
+  app.innerHTML = `
    <div class="hero">
-     <div class="place">${esc(STATE.label)} · ${STATE.holes} holes · ${Math.round(ROUND_MIN[STATE.holes]/6)/10}h round</div>
+     <div class="place">${esc(STATE.label)} · ${STATE.holes} holes · ${(ROUND_MIN[STATE.holes]/60).toFixed(1).replace('.0','')}h round</div>
      <h1 class="verdict">${verdictWord(today.best.score)} at <em>${fmt(today.best.start)}</em></h1>
      <p class="subline">${headline(today)}</p>
    </div>
@@ -314,60 +372,76 @@ function render(){
    <div class="ribbon-wrap">
      <ul class="ribbon">${ribbon}</ul>
      <div class="scale"><span>${fmt(today.slots[0].start)}</span>
-       <span>last tee ${fmt(today.slots[today.slots.length-1].start)}</span></div>
+       <span>last tee ${fmt(today.lastTee)}</span></div>
    </div>
-   ${detailHTML(pick)}`;
-
-  app.innerHTML = shell(head) + weekHTML();
+   ${detailHTML(pick)}
+   ${alts ? `<h2 class="sec">Other slots today</h2><div class="alts">${alts}</div>` : ''}
+   ` + weekHTML();
   bind();
 }
 
-function shell(inner){ return inner }
-
 function detailHTML(w){
-  const f = w.slice.map(h=>h), mid = f[Math.floor(f.length/2)];
+  const f = w.slice;
   const rows = [
-    ['Rain', w.agg.rain, 45, Math.round(avg(f,'pop')) + '% · ' + (sum(f,'precip')).toFixed(1) + ' mm'],
+    ['Rain', w.agg.rain, 45, Math.round(avg(f,'pop')) + '% · ' + sum(f,'precip').toFixed(1) + ' mm'],
     ['Wind', w.agg.wind, 35, Math.round(avg(f,'wind')) + ' mph, gusts ' + Math.round(Math.max(...f.map(h=>h.gust)))],
     ['Heat', w.agg.heat, 35, Math.round(avg(f,'feels')) + '°C felt · ' + Math.round(avg(f,'rh')) + '% humidity'],
-    ['Daylight', w.darkMin > 0 ? 40 : 0, 40, w.darkMin > 0 ? Math.round(w.darkMin) + ' min after sunset' : 'Finishes in light']
+    ['Daylight', w.darkMin > 0 ? 40 : 0, 40, w.darkMin > 0 ? Math.round(w.darkMin) + ' min past sunset' : 'Finishes in light']
   ].map(([k,pen,max,val])=>`
     <li><span class="k">${k}</span>
       <span class="track"><span style="width:${Math.min(100, pen/max*100)}%;background:${pen/max>.55?'var(--poor)':pen/max>.25?'var(--amber)':'var(--good)'}"></span></span>
       <span>${val}</span></li>`).join('');
 
+  const holePace = ROUND_MIN[STATE.holes] / (STATE.holes);
+  const timeline = w.parts.map((p, i) => {
+    const from = new Date(Math.max(p.h.t, w.start));
+    const holeFrom = Math.max(1, Math.round((from - w.start)/60000 / holePace) + 1);
+    const t = troubleOf(p.why);
+    return `<li>
+      <span class="tl-time">${fmt(from)}</span>
+      <span class="tl-hole">holes ${holeFrom}–${Math.min(STATE.holes, Math.round((Math.min(p.h.t.getTime()+36e5, w.finish.getTime()) - w.start)/60000 / holePace))}</span>
+      <span class="track"><span style="width:${p.score}%;background:${tone(p.score)}"></span></span>
+      <span class="tl-note">${t ? t.key + (t.pen > 22 ? ' — heavy' : t.pen > 12 ? ' — moderate' : ' — light') : 'Clear'}</span>
+    </li>`;
+  }).join('');
+
   return `<div class="detail">
     <div class="detail-top"><span class="tee">${fmt(w.start)}</span>
       <span class="score" style="color:${tone(w.score)}">${w.score}</span></div>
-    <div class="detail-sub">Back in the clubhouse by ${fmt(w.finish)} · ${verdictWord(w.score)}</div>
+    <div class="detail-sub">In the clubhouse by ${fmt(w.finish)} · ${verdictWord(w.score)}</div>
     <ul class="factors">${rows}</ul>
-    <p class="note">${advice(w, mid)}</p>
+    <h3 class="tl-head">Through the round</h3>
+    <ul class="timeline">${timeline}</ul>
+    <p class="note">${advice(w, f[0])}</p>
   </div>`;
 }
 
 function advice(w, mid){
   const bits = [];
+  const rough = w.parts.filter(p => p.score < 60);
   const carry = Math.round(((avg(w.slice,'temp') - 20) * 0.25) * 10) / 10;
-  if (w.agg.storm > 20) bits.push('<b>Thunder in the window</b> — treat the horn seriously and know your shelter.');
-  if (avg(w.slice,'pop') > 45) bits.push('Rain gloves and a towel in the bag.');
-  if (avg(w.slice,'feels') > 32) bits.push('Felt heat above 32°C — two litres of water and a wet towel, or move earlier.');
-  if (Math.max(...w.slice.map(h=>h.gust)) > 20) bits.push('Gusts over 20 mph: club up and swing at 80% into the breeze.');
-  if (carry !== 0) bits.push('Warm air adds roughly ' + Math.abs(carry) + ' yards of carry to a driver.');
-  if (sumRecentRain() > 12) bits.push('Greens will be soft and slow after the last day of rain — putts need extra pace.');
-  if (!bits.length) bits.push('Clean conditions across the round. No club adjustment needed.');
+  if (rough.length) bits.push('Roughest stretch is around <b>' + fmt(rough[0].h.t) + '</b>.');
+  if (w.agg.storm > 20) bits.push('Thunder in the window — know your shelter.');
+  if (avg(w.slice,'pop') > 45) bits.push('Rain gloves and a towel.');
+  if (avg(w.slice,'feels') > 32) bits.push('Felt heat above 32°C — two litres of water.');
+  if (Math.max(...w.slice.map(h=>h.gust)) > 20) bits.push('Gusts over 20 mph: club up, swing at 80%.');
+  if (carry > 0 && bits.length < 3) bits.push('Warm air adds about ' + carry + ' yards of driver carry.');
+  if (!bits.length) bits.push('Clean conditions the whole way round. No club adjustment needed.');
   return bits.slice(0,3).join(' ');
 }
 
 function sumRecentRain(){ return STATE.data.days[0].rainSum || 0 }
 const avg = (a,k)=> a.reduce((s,h)=>s+(h[k]||0),0)/a.length;
 const sum = (a,k)=> a.reduce((s,h)=>s+(h[k]||0),0);
+const fmtHour = dec => { const d = new Date(); d.setHours(Math.floor(dec), (dec%1)*60, 0, 0); return fmt(d); };
 
 function headline(t){
-  const b = t.best, worstNote = b.agg.rain > 18 ? 'showers thread through the afternoon'
+  const b = t.best;
+  const note = b.agg.rain > 18 ? 'showers thread through the day'
     : b.agg.wind > 14 ? 'the breeze builds later'
     : b.agg.heat > 14 ? 'the middle of the day turns heavy'
     : 'conditions hold steady';
-  return `Best of ${t.slots.length} tee slots today — ${worstNote}, so this window keeps the whole round clean rather than just the first tee shot.`;
+  return `${t.slots.length} tee slots checked at half-hour steps up to the ${fmtHour(LAST_TEE[STATE.holes])} cut-off — ${note}, so this window keeps the whole round clean, not just the first tee shot.`;
 }
 
 function weekHTML(){
@@ -375,7 +449,8 @@ function weekHTML(){
     if (i === 0) return '';
     const a = analyseDay(i);
     if (!a.best) return '';
-    return `<li><span class="day">${d.date.toLocaleDateString([], {weekday:'short'})}</span>
+    return `<li><span class="day">${d.date.toLocaleDateString([], {weekday:'short'})}<br>
+      <span class="date">${d.date.toLocaleDateString([], {day:'numeric', month:'short'})}</span></span>
       <span class="when">${fmt(a.best.start)} — ${fmt(a.best.finish)}</span>
       <span class="chip" style="background:${tone(a.best.score)}">${a.best.score}</span></li>`;
   }).join('');
@@ -383,7 +458,7 @@ function weekHTML(){
 }
 
 function bind(){
-  document.querySelectorAll('.ribbon button').forEach(b =>
+  document.querySelectorAll('.ribbon button, .alts .alt').forEach(b =>
     b.onclick = () => { STATE.sel = +b.dataset.h; render(); });
   document.querySelectorAll('.holes button').forEach(b =>
     b.onclick = () => { STATE.holes = +b.dataset.holes; STATE.sel = null; render(); });
@@ -391,24 +466,126 @@ function bind(){
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+/* ---------- appearance ---------- */
+function setTheme(mode){
+  const root = document.documentElement;
+  if (mode === 'auto') root.removeAttribute('data-theme');
+  else root.setAttribute('data-theme', mode);
+  document.querySelectorAll('.theme button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.themeSet === mode)));
+  try { localStorage.setItem('teewindow-theme', mode); } catch {}
+}
+document.querySelectorAll('.theme button').forEach(b =>
+  b.onclick = () => setTheme(b.dataset.themeSet));
+let saved = 'auto';
+try { saved = localStorage.getItem('teewindow-theme') || 'auto'; } catch {}
+setTheme(saved);
+
 /* ---------- location ---------- */
 const COURSES = [
-  ['Wack Wack, Mandaluyong', 14.5836, 121.0472],
+ ['Metro Manila', [
+  ['Wack Wack Golf & CC, Mandaluyong', 14.5836, 121.0472],
+  ['Manila Golf & CC, Makati', 14.5490, 121.0230],
+  ['Valley Golf & CC, Antipolo', 14.5830, 121.1130],
+  ['Capitol Hills Golf & CC, Quezon City', 14.6620, 121.0570],
+  ['Veterans Golf Course, Quezon City', 14.6420, 121.0490],
+  ['Camp Aguinaldo Golf Club, Quezon City', 14.6153, 121.0640],
+  ['Villamor Golf Club, Pasay', 14.5153, 121.0192],
+  ['Navy Golf Club, Taguig', 14.5240, 121.0430],
+  ['Intramuros Golf Course, Manila', 14.5900, 120.9760],
+  ['Club Intramuros / Bayview, Manila', 14.5880, 120.9770],
+  ['Rizal Golf Club, Taguig', 14.5090, 121.0480]
+ ]],
+ ['Rizal & east', [
+  ['Riverbend Golf, Antipolo', 14.6270, 121.1500],
+  ['Forest Hills Golf & CC, Antipolo', 14.6390, 121.1670],
+  ['Sunvalley Golf & CC, Antipolo', 14.6100, 121.1370],
+  ['Eastridge Golf Club, Binangonan', 14.4700, 121.1900],
+  ['Timberland Heights, San Mateo', 14.7250, 121.1030],
+  ['Southlinks Golf, Taytay', 14.5620, 121.1350]
+ ]],
+ ['Cavite', [
   ['Manila Southwoods, Carmona', 14.3122, 121.0533],
-  ['Sta. Elena, Cabuyao', 14.2447, 121.1264],
-  ['The Country Club, Laguna', 14.2650, 121.0680],
-  ['Riviera, Silang', 14.2264, 120.9958],
-  ['Eagle Ridge, General Trias', 14.3403, 120.9231],
-  ['Villamor, Pasay', 14.5153, 121.0192],
-  ['Camp Aguinaldo, Quezon City', 14.6153, 121.0640],
-  ['Splendido Taal, Tagaytay', 14.1180, 120.9490],
-  ['Pradera Verde, Pampanga', 14.9540, 120.6180],
-  ['Mimosa Plus, Clark', 15.1800, 120.5340],
-  ['Camp John Hay, Baguio', 16.4020, 120.6180]
+  ['Riviera Golf Club, Silang', 14.2264, 120.9958],
+  ['Eagle Ridge Golf & CC, Gen. Trias', 14.3403, 120.9231],
+  ['Orchard Golf & CC, Dasmariñas', 14.3170, 120.9550],
+  ['Sherwood Hills Golf, Trece Martires', 14.2830, 120.8620],
+  ['Royale Tagaytay Golf, Alfonso', 14.1250, 120.8570],
+  ['Tagaytay Highlands, Talisay side', 14.1330, 121.0080],
+  ['Tagaytay Midlands, Talisay', 14.1200, 120.9900],
+  ['Splendido Taal Golf, Laurel', 14.1180, 120.9490],
+  ['Puerto Azul Golf, Ternate', 14.2450, 120.6400]
+ ]],
+ ['Laguna & Batangas', [
+  ['Sta. Elena Golf Club, Cabuyao', 14.2447, 121.1264],
+  ['The Country Club, Sta. Rosa', 14.2650, 121.0680],
+  ['Canlubang Golf & CC, Calamba', 14.2000, 121.1000],
+  ['Caliraya Springs Golf, Lumban', 14.2800, 121.5300],
+  ['Mount Malarayat Golf, Lipa', 13.9700, 121.1900],
+  ['Summit Point Golf, Lipa', 13.9450, 121.1500],
+  ['Calatagan Golf Club, Calatagan', 13.8330, 120.6300],
+  ['Anvaya Cove-style links, Nasugbu', 14.0700, 120.6300],
+  ['Batulao Golf, Nasugbu', 14.0430, 120.7500]
+ ]],
+ ['Pampanga, Clark & Bataan', [
+  ['Mimosa Plus Golf, Clark', 15.1800, 120.5340],
+  ['Luisita Golf & CC, Tarlac', 15.4700, 120.5900],
+  ['Pradera Verde Golf, Lubao', 14.9540, 120.6180],
+  ['Sandy Valley Golf, Porac', 15.0900, 120.5200],
+  ['Clark Sun Valley Golf, Angeles', 15.1600, 120.5600],
+  ['Anvaya Cove Golf, Morong Bataan', 14.6800, 120.2700],
+  ['Bataan Golf & CC, Balanga', 14.6700, 120.5300],
+  ['Subic Bay Golf, SBFZ', 14.7900, 120.2700]
+ ]],
+ ['North Luzon', [
+  ['Camp John Hay Golf, Baguio', 16.4020, 120.6180],
+  ['Baguio Country Club, Baguio', 16.4060, 120.6110],
+  ['Pinewoods Golf, La Trinidad', 16.4550, 120.5900],
+  ['Fort Ilocandia Golf, Laoag', 18.1550, 120.5300],
+  ['Villa Sandra Golf, Ilocos Sur', 17.5700, 120.3900],
+  ['Nueva Ecija Golf, Cabanatuan', 15.4900, 120.9600],
+  ['Villa Escudero-style course, Quezon', 14.0700, 121.4300]
+ ]],
+ ['Bicol & south Luzon', [
+  ['Legazpi Golf, Albay', 13.1600, 123.7400],
+  ['Naga Golf Club, Camarines Sur', 13.6300, 123.1800]
+ ]],
+ ['Cebu & Bohol', [
+  ['Cebu Country Club, Cebu City', 10.3300, 123.9060],
+  ['Alta Vista Golf & CC, Cebu City', 10.2830, 123.8580],
+  ['Club Filipino de Cebu, Danao', 10.5200, 124.0200],
+  ['Mactan Island Golf, Lapu-Lapu', 10.3050, 123.9800],
+  ['Aparilla / Sherwood Hills Cebu, Naga', 10.2100, 123.7600],
+  ['Bohol Golf, Panglao', 9.5700, 123.7500]
+ ]],
+ ['Negros, Panay & Boracay', [
+  ['Bacolod Golf & CC, Bacolod', 10.6300, 122.9700],
+  ['Marapara Golf, Bacolod', 10.6700, 122.9500],
+  ['Iloilo Golf & CC, Sta. Barbara', 10.8200, 122.5300],
+  ['Fairways & Bluewater, Boracay', 11.9800, 121.9300],
+  ['Sicogon Golf, Iloilo', 11.4600, 123.2300]
+ ]],
+ ['Palawan & Mindoro', [
+  ['Palawan Golf, Puerto Princesa', 9.7800, 118.7400],
+  ['Ponderosa Golf, Puerto Galera', 13.4600, 120.9500]
+ ]],
+ ['Mindanao', [
+  ['Apo Golf & CC, Davao City', 7.0900, 125.5900],
+  ['Rancho Palos Verdes Golf, Davao', 7.1300, 125.5300],
+  ['South Pacific Golf, Davao', 7.0500, 125.5200],
+  ['Del Monte Golf, Bukidnon', 8.3200, 124.9000],
+  ['Pueblo de Oro Golf, Cagayan de Oro', 8.4800, 124.6300],
+  ['Kalayaan Golf, Iligan', 8.2300, 124.2400],
+  ['Zamboanga Golf, Zamboanga City', 6.9200, 122.0800],
+  ['General Santos Golf, GenSan', 6.1100, 125.1700],
+  ['Marbel Golf, Koronadal', 6.5000, 124.8400]
+ ]]
 ];
 const sel = $('#courses');
 sel.innerHTML = '<option value="">Jump to a course…</option>' +
-  COURSES.map(c => `<option value="${c[1]},${c[2]}">${c[0]}</option>`).join('');
+  COURSES.map(([region, list]) => '<optgroup label="' + region + '">' +
+    list.map(c => `<option value="${c[1]},${c[2]}">${c[0]}</option>`).join('') +
+    '</optgroup>').join('');
 sel.onchange = () => {
   if (!sel.value) return;
   const [la, lo] = sel.value.split(',');
