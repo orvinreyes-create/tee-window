@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tee Window — when to play today</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root, :root[data-theme="dark"]{
+  --pine:#0E1A14;
+  --moss:#16241C;
+  --moss-2:#1D3126;
+  --chalk:#F2EDE3;
+  --muted:#9FB2A5;
+  --amber:#E8A33D;
+  --good:#7FD1A0;
+  --fair:#D9C86B;
+  --poor:#E2705B;
+  --line:rgba(242,237,227,.12);
+  --track:rgba(242,237,227,.09);
+  --glow:#1B3226;
+  --chip-ink:#12190F;
+}
+:root[data-theme="light"]{
+  --pine:#F6F4EC;
+  --moss:#FFFFFF;
+  --moss-2:#EDF0E9;
+  --chalk:#17251C;
+  --muted:#5F7267;
+  --amber:#B87515;
+  --good:#3E9C6A;
+  --fair:#A08A18;
+  --poor:#C0492F;
+  --line:rgba(23,37,28,.14);
+  --track:rgba(23,37,28,.09);
+  --glow:#E4EDE2;
+  --chip-ink:#FFFFFF;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]):not([data-theme="light"]){
+    --pine:#F6F4EC; --moss:#FFFFFF; --moss-2:#EDF0E9; --chalk:#17251C;
+    --muted:#5F7267; --amber:#B87515; --good:#3E9C6A; --fair:#A08A18; --poor:#C0492F;
+    --line:rgba(23,37,28,.14); --track:rgba(23,37,28,.09); --glow:#E4EDE2; --chip-ink:#FFFFFF;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(120% 60% at 50% -10%, var(--glow) 0%, transparent 60%),
+    var(--pine);
+  color:var(--chalk);
+  font-family:Karla,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  padding:20px 18px 64px;
+  max-width:560px; margin:0 auto;
+}
+h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0;letter-spacing:-.01em}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:6px}
+
+/* ── location bar ── */
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:22px}
+.bar input{
+  flex:1;min-width:0;background:var(--moss);border:1px solid var(--line);
+  color:var(--chalk);padding:11px 14px;border-radius:999px;font:inherit;
+}
+.bar input::placeholder{color:var(--muted)}
+.bar button{
+  background:var(--moss);border:1px solid var(--line);color:var(--chalk);
+  padding:11px 14px;border-radius:999px;white-space:nowrap;
+}
+.bar button.locate{background:var(--amber);color:#FFF8EC;border-color:transparent;font-weight:700}
+:root[data-theme="light"] .bar button.locate{color:#FFF8EC}
+.results{list-style:none;margin:-14px 0 20px;padding:0;background:var(--moss);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+#courses{flex:1;background:var(--moss);border:1px solid var(--line);color:var(--chalk);padding:11px 14px;border-radius:999px;font:inherit}
+#banner{background:rgba(232,163,61,.12);border:1px solid rgba(232,163,61,.4);color:var(--chalk);
+  padding:11px 14px;border-radius:14px;font-size:13.5px;line-height:1.5;margin:0 0 18px}
+.results li button{display:block;width:100%;text-align:left;background:none;border:0;padding:11px 14px;border-bottom:1px solid var(--line)}
+.results li:last-child button{border-bottom:0}
+
+/* ── hero ── */
+.hero{margin-bottom:8px}
+.place{color:var(--muted);font-size:14px;margin-bottom:6px}
+.verdict{font-size:clamp(30px,9vw,42px);line-height:1.06;margin-bottom:10px}
+.verdict em{font-style:normal;color:var(--amber)}
+.subline{color:var(--muted);max-width:44ch;margin-bottom:20px}
+
+/* ── the ribbon: the day, sunrise to sunset ── */
+.ribbon-wrap{margin:0 0 10px}
+.ribbon{
+  display:flex;gap:2px;height:74px;align-items:flex-end;
+  padding:0;margin:0;list-style:none;
+}
+.ribbon li{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.ribbon .bar-fill{width:100%;border-radius:3px 3px 2px 2px;transition:opacity .15s}
+.ribbon li[aria-selected="true"] .bar-fill{box-shadow:0 0 0 2px var(--chalk) inset}
+.ribbon button{background:none;border:0;padding:0;width:100%;height:100%;display:flex;align-items:flex-end}
+.scale{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-top:6px;letter-spacing:.02em}
+
+/* ── picked window detail ── */
+.detail{background:var(--moss);border:1px solid var(--line);border-radius:18px;padding:18px;margin:16px 0 22px}
+.detail-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px}
+.tee{font-family:Fraunces,serif;font-size:34px;font-weight:600;letter-spacing:-.02em}
+.score{font-family:Fraunces,serif;font-size:34px;font-weight:800}
+.detail-sub{color:var(--muted);font-size:14px;margin-bottom:14px}
+.factors{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.factors li{display:grid;grid-template-columns:96px 1fr auto;gap:10px;align-items:center;font-size:14px}
+.factors .k{color:var(--muted)}
+.track{height:6px;background:var(--track);border-radius:99px;overflow:hidden}
+.track span{display:block;height:100%;border-radius:99px}
+.note{margin-top:14px;padding-top:13px;border-top:1px solid var(--line);font-size:14px;color:var(--chalk)}
+.note b{color:var(--amber);font-weight:700}
+
+/* ── controls ── */
+.holes{display:flex;gap:6px;margin:0 0 18px}
+.holes button{background:var(--moss);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;color:var(--muted)}
+.holes button[aria-pressed="true"]{background:var(--chalk);color:var(--pine);border-color:transparent;font-weight:700}
+
+/* ── week ── */
+h2.sec{font-size:20px;margin:26px 0 12px}
+.week{list-style:none;margin:0;padding:0}
+.week li{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.week .day{font-weight:700}
+.week .when{color:var(--muted);font-size:14px}
+.chip{font-family:Fraunces,serif;font-weight:800;font-size:17px;padding:2px 10px;border-radius:8px;color:var(--chip-ink)}
+.msg{color:var(--muted);padding:26px 0}
+.err{color:var(--poor)}
+footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <input id="q" type="search" placeholder="Search a city or course area" autocomplete="off">
+  <button id="go">Search</button>
+  <button id="gps" class="locate">Use my location</button>
+</div>
+<ul id="results" class="results" hidden></ul>
+<div class="bar" style="margin-top:-10px">
+  <select id="courses"></select>
+</div>
+<p id="banner" hidden></p>
+
+<div id="app"><p class="msg">Loading a course-side forecast…</p></div>
+
+<footer>
+  Scores weigh rain, wind and gusts, heat stress, storm risk and remaining daylight across your whole round — not just the hour you tee off.
+  Forecast by Open-Meteo.
+</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const app = $('#app');
+let STATE = { holes: 18, lat: null, lon: null, label: '', data: null, sel: null, day: 0 };
+
+const ROUND_MIN = { 18: 258, 9: 126 };   // 4h18 / 2h06 including warm-up walk
+
+/* ---------- scoring ---------- */
+function hourScore(h){
+  let s = 100, why = {};
+  const rainPen = Math.min(45, h.pop * 0.28 + Math.min(h.precip, 8) * 6);
+  const windPen = Math.max(0, h.wind - 8) * 2.2 + Math.max(0, h.gust - 16) * 1.3;
+  const heatPen = h.feels > 28 ? (h.feels - 28) * 3.1 : (h.feels < 10 ? (10 - h.feels) * 2.6 : 0);
+  const stormPen = [95,96,99].includes(h.code) ? 55 : ([80,81,82].includes(h.code) ? 12 : 0);
+  const uvPen = h.uv > 10 ? 5 : 0;
+  s -= rainPen + Math.min(35, windPen) + Math.min(35, heatPen) + stormPen + uvPen;
+  why = { rain: rainPen, wind: Math.min(35, windPen), heat: Math.min(35, heatPen), storm: stormPen };
+  return { score: Math.max(0, Math.round(s)), why };
+}
+
+function windowScore(hours, startIdx, mins, sunsetT){
+  const span = mins / 60, need = Math.ceil(span);
+  const slice = hours.slice(startIdx, startIdx + need);
+  if (slice.length < need) return null;
+  const scores = slice.map(h => hourScore(h).score);
+  const avg = scores.reduce((a,b)=>a+b,0) / scores.length;
+  const worst = Math.min(...scores);
+  let s = avg - (avg - worst) * 0.55;                 // a bad patch ruins a round
+  const finish = new Date(slice[0].t.getTime() + mins*60000);
+  const darkMin = Math.max(0, (finish - sunsetT) / 60000);
+  s -= Math.min(70, darkMin * 0.55);                  // finishing in the dark
+  const agg = { rain:0, wind:0, heat:0, storm:0 };
+  slice.forEach(h => { const w = hourScore(h).why; for (const k in agg) agg[k] += w[k]/slice.length; });
+  return { score: Math.max(0, Math.round(s)), start: slice[0].t, finish, slice, agg, darkMin, worst };
+}
+
+const tone = s => s >= 80 ? 'var(--good)' : s >= 62 ? 'var(--fair)' : s >= 40 ? 'var(--amber)' : 'var(--poor)';
+const verdictWord = s => s >= 85 ? 'Play' : s >= 70 ? 'Good round' : s >= 55 ? 'Playable' : s >= 35 ? 'Grind' : 'Sit it out';
+const fmt = d => d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+
+/* ---------- data ---------- */
+async function load(lat, lon, label){
+  STATE.lat = lat; STATE.lon = lon; STATE.label = label;
+  app.innerHTML = '<p class="msg">Reading the sky over ' + esc(label) + '…</p>';
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+
+    '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,uv_index,relative_humidity_2m'+
+    '&daily=sunrise,sunset,precipitation_sum&timezone=auto&forecast_days=8&wind_speed_unit=mph';
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('Forecast service returned ' + r.status);
+    const j = await r.json();
+    STATE.data = parse(j);
+    STATE.day = 0; STATE.sel = null;
+    render();
+  } catch (e) {
+    STATE.data = demoData(lat);
+    STATE.day = 0; STATE.sel = null;
+    showBanner('Showing sample conditions. This preview window blocks outside connections, so the live forecast can\'t load here — download the file and open it in a browser and it pulls real data for any location.');
+    render();
+  }
+}
+
+function parse(j){
+  const H = j.hourly;
+  const hours = H.time.map((t,i)=>({
+    t: new Date(t),
+    temp: H.temperature_2m[i], feels: H.apparent_temperature[i],
+    pop: H.precipitation_probability[i] ?? 0, precip: H.precipitation[i] ?? 0,
+    code: H.weather_code[i], wind: H.wind_speed_10m[i], gust: H.wind_gusts_10m[i],
+    dir: H.wind_direction_10m[i], uv: H.uv_index[i] ?? 0, rh: H.relative_humidity_2m[i]
+  }));
+  const days = j.daily.time.map((d,i)=>({
+    date: new Date(d + 'T12:00'),
+    sunrise: new Date(j.daily.sunrise[i]), sunset: new Date(j.daily.sunset[i]),
+    rainSum: j.daily.precipitation_sum[i]
+  }));
+  return { hours, days, tz: j.timezone };
+}
+
+function showBanner(t){ const b = $('#banner'); b.hidden = false; b.textContent = t; }
+
+/* Sample tropical-monsoon day pattern, used only when the network is unavailable. */
+function demoData(lat){
+  const tropical = Math.abs(+lat) < 25;
+  const hours = [], days = [];
+  const base = new Date(); base.setMinutes(0,0,0);
+  const start = new Date(base); start.setHours(0);
+  for (let d = 0; d < 8; d++){
+    const day = new Date(start.getTime() + d*864e5);
+    const mood = [0.35,0.9,0.2,0.6,1.0,0.45,0.3,0.7][d];   // 1 = wet & stormy
+    for (let h = 0; h < 24; h++){
+      const t = new Date(day.getTime() + h*36e5);
+      const solar = Math.max(0, Math.sin((h - 6) / 12 * Math.PI));
+      const temp = (tropical ? 25 : 15) + solar * (tropical ? 8 : 9);
+      const conv = Math.max(0, Math.sin((h - 11) / 9 * Math.PI));  // afternoon build-up
+      const pop = Math.min(95, Math.round(conv * 90 * mood + 8));
+      const precip = pop > 55 ? +(conv * 4 * mood).toFixed(1) : 0;
+      hours.push({
+        t, temp: +temp.toFixed(1),
+        feels: +(temp + (tropical ? 4.5 * solar : 1)).toFixed(1),
+        pop, precip,
+        code: pop > 80 && mood > 0.8 ? 95 : pop > 60 ? 80 : 3,
+        wind: +(5 + solar * 7 * mood + 2).toFixed(1),
+        gust: +(9 + solar * 13 * mood).toFixed(1),
+        dir: 250, uv: +(solar * 11).toFixed(1),
+        rh: Math.round(95 - solar * 25 + mood * 5)
+      });
+    }
+    const sr = new Date(day); sr.setHours(5,45);
+    const ss = new Date(day); ss.setHours(18,5);
+    days.push({ date: new Date(day.getTime() + 12*36e5), sunrise: sr, sunset: ss, rainSum: +(mood*18).toFixed(1) });
+  }
+  return { hours, days, tz: 'local', demo: true };
+}
+
+/* ---------- day analysis ---------- */
+function analyseDay(di){
+  const { hours, days } = STATE.data, d = days[di];
+  const mins = ROUND_MIN[STATE.holes];
+  const now = new Date();
+  const earliest = new Date(Math.max(d.sunrise.getTime(), di === 0 ? now.getTime() : 0));
+  const slots = [];
+  hours.forEach((h,i)=>{
+    if (h.t < earliest - 3600000 || h.t > d.sunset) return;
+    if (h.t.toDateString() !== d.date.toDateString()) return;
+    const w = windowScore(hours, i, mins, d.sunset);
+    if (w) slots.push(w);
+  });
+  return { d, slots, best: slots.length ? slots.reduce((a,b)=> b.score > a.score ? b : a) : null };
+}
+
+/* ---------- render ---------- */
+function render(){
+  const today = analyseDay(0);
+  if (!today.slots.length){
+    app.innerHTML = shell('<p class="msg">Daylight has run out here for a full ' + STATE.holes +
+      '. The week below still has room.</p>') + weekHTML();
+    bind(); return;
+  }
+  const pick = STATE.sel != null ? today.slots.find(s => s.start.getHours() === STATE.sel) || today.best : today.best;
+
+  const ribbon = today.slots.map(s => {
+    const h = 24 + (s.score/100) * 50;
+    return `<li aria-selected="${s === pick}"><button data-h="${s.start.getHours()}"
+      aria-label="Tee at ${fmt(s.start)}, score ${s.score}">
+      <span class="bar-fill" style="height:${h}px;background:${tone(s.score)}"></span></button></li>`;
+  }).join('');
+
+  const head = `
+   <div class="hero">
+     <div class="place">${esc(STATE.label)} · ${STATE.holes} holes · ${Math.round(ROUND_MIN[STATE.holes]/6)/10}h round</div>
+     <h1 class="verdict">${verdictWord(today.best.score)} at <em>${fmt(today.best.start)}</em></h1>
+     <p class="subline">${headline(today)}</p>
+   </div>
+   <div class="holes">
+     <button data-holes="18" aria-pressed="${STATE.holes===18}">18 holes</button>
+     <button data-holes="9" aria-pressed="${STATE.holes===9}">9 holes</button>
+   </div>
+   <div class="ribbon-wrap">
+     <ul class="ribbon">${ribbon}</ul>
+     <div class="scale"><span>${fmt(today.slots[0].start)}</span>
+       <span>last tee ${fmt(today.slots[today.slots.length-1].start)}</span></div>
+   </div>
+   ${detailHTML(pick)}`;
+
+  app.innerHTML = shell(head) + weekHTML();
+  bind();
+}
+
+function shell(inner){ return inner }
+
+function detailHTML(w){
+  const f = w.slice.map(h=>h), mid = f[Math.floor(f.length/2)];
+  const rows = [
+    ['Rain', w.agg.rain, 45, Math.round(avg(f,'pop')) + '% · ' + (sum(f,'precip')).toFixed(1) + ' mm'],
+    ['Wind', w.agg.wind, 35, Math.round(avg(f,'wind')) + ' mph, gusts ' + Math.round(Math.max(...f.map(h=>h.gust)))],
+    ['Heat', w.agg.heat, 35, Math.round(avg(f,'feels')) + '°C felt · ' + Math.round(avg(f,'rh')) + '% humidity'],
+    ['Daylight', w.darkMin > 0 ? 40 : 0, 40, w.darkMin > 0 ? Math.round(w.darkMin) + ' min after sunset' : 'Finishes in light']
+  ].map(([k,pen,max,val])=>`
+    <li><span class="k">${k}</span>
+      <span class="track"><span style="width:${Math.min(100, pen/max*100)}%;background:${pen/max>.55?'var(--poor)':pen/max>.25?'var(--amber)':'var(--good)'}"></span></span>
+      <span>${val}</span></li>`).join('');
+
+  return `<div class="detail">
+    <div class="detail-top"><span class="tee">${fmt(w.start)}</span>
+      <span class="score" style="color:${tone(w.score)}">${w.score}</span></div>
+    <div class="detail-sub">Back in the clubhouse by ${fmt(w.finish)} · ${verdictWord(w.score)}</div>
+    <ul class="factors">${rows}</ul>
+    <p class="note">${advice(w, mid)}</p>
+  </div>`;
+}
+
+function advice(w, mid){
+  const bits = [];
+  const carry = Math.round(((avg(w.slice,'temp') - 20) * 0.25) * 10) / 10;
+  if (w.agg.storm > 20) bits.push('<b>Thunder in the window</b> — treat the horn seriously and know your shelter.');
+  if (avg(w.slice,'pop') > 45) bits.push('Rain gloves and a towel in the bag.');
+  if (avg(w.slice,'feels') > 32) bits.push('Felt heat above 32°C — two litres of water and a wet towel, or move earlier.');
+  if (Math.max(...w.slice.map(h=>h.gust)) > 20) bits.push('Gusts over 20 mph: club up and swing at 80% into the breeze.');
+  if (carry !== 0) bits.push('Warm air adds roughly ' + Math.abs(carry) + ' yards of carry to a driver.');
+  if (sumRecentRain() > 12) bits.push('Greens will be soft and slow after the last day of rain — putts need extra pace.');
+  if (!bits.length) bits.push('Clean conditions across the round. No club adjustment needed.');
+  return bits.slice(0,3).join(' ');
+}
+
+function sumRecentRain(){ return STATE.data.days[0].rainSum || 0 }
+const avg = (a,k)=> a.reduce((s,h)=>s+(h[k]||0),0)/a.length;
+const sum = (a,k)=> a.reduce((s,h)=>s+(h[k]||0),0);
+
+function headline(t){
+  const b = t.best, worstNote = b.agg.rain > 18 ? 'showers thread through the afternoon'
+    : b.agg.wind > 14 ? 'the breeze builds later'
+    : b.agg.heat > 14 ? 'the middle of the day turns heavy'
+    : 'conditions hold steady';
+  return `Best of ${t.slots.length} tee slots today — ${worstNote}, so this window keeps the whole round clean rather than just the first tee shot.`;
+}
+
+function weekHTML(){
+  const rows = STATE.data.days.map((d,i)=>{
+    if (i === 0) return '';
+    const a = analyseDay(i);
+    if (!a.best) return '';
+    return `<li><span class="day">${d.date.toLocaleDateString([], {weekday:'short'})}</span>
+      <span class="when">${fmt(a.best.start)} — ${fmt(a.best.finish)}</span>
+      <span class="chip" style="background:${tone(a.best.score)}">${a.best.score}</span></li>`;
+  }).join('');
+  return `<h2 class="sec">Best window each day</h2><ul class="week">${rows}</ul>`;
+}
+
+function bind(){
+  document.querySelectorAll('.ribbon button').forEach(b =>
+    b.onclick = () => { STATE.sel = +b.dataset.h; render(); });
+  document.querySelectorAll('.holes button').forEach(b =>
+    b.onclick = () => { STATE.holes = +b.dataset.holes; STATE.sel = null; render(); });
+}
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- location ---------- */
+const COURSES = [
+  ['Wack Wack, Mandaluyong', 14.5836, 121.0472],
+  ['Manila Southwoods, Carmona', 14.3122, 121.0533],
+  ['Sta. Elena, Cabuyao', 14.2447, 121.1264],
+  ['The Country Club, Laguna', 14.2650, 121.0680],
+  ['Riviera, Silang', 14.2264, 120.9958],
+  ['Eagle Ridge, General Trias', 14.3403, 120.9231],
+  ['Villamor, Pasay', 14.5153, 121.0192],
+  ['Camp Aguinaldo, Quezon City', 14.6153, 121.0640],
+  ['Splendido Taal, Tagaytay', 14.1180, 120.9490],
+  ['Pradera Verde, Pampanga', 14.9540, 120.6180],
+  ['Mimosa Plus, Clark', 15.1800, 120.5340],
+  ['Camp John Hay, Baguio', 16.4020, 120.6180]
+];
+const sel = $('#courses');
+sel.innerHTML = '<option value="">Jump to a course…</option>' +
+  COURSES.map(c => `<option value="${c[1]},${c[2]}">${c[0]}</option>`).join('');
+sel.onchange = () => {
+  if (!sel.value) return;
+  const [la, lo] = sel.value.split(',');
+  load(la, lo, sel.options[sel.selectedIndex].text);
+};
+
+$('#gps').onclick = () => {
+  if (!navigator.geolocation) return fail('This browser will not share a location. Pick a course or search a place instead.');
+  app.innerHTML = '<p class="msg">Finding you…</p>';
+  navigator.geolocation.getCurrentPosition(
+    p => load(p.coords.latitude.toFixed(4), p.coords.longitude.toFixed(4), 'Your location'),
+    () => fail('Location sharing is off in this preview window. Pick a course below, or download the file and open it in a browser to use GPS.'),
+    { timeout: 10000 }
+  );
+};
+function fail(m){ app.innerHTML = '<p class="msg err">' + m + '</p>' }
+
+async function search(){
+  const q = $('#q').value.trim(); if (!q) return;
+  const list = $('#results');
+  try {
+    const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=5&name=' + encodeURIComponent(q));
+    const j = await r.json();
+    if (!j.results){ list.hidden = true; return fail('No place matched “' + esc(q) + '”. Try a nearby city.'); }
+    list.hidden = false;
+    list.innerHTML = j.results.map(p =>
+      `<li><button data-lat="${p.latitude}" data-lon="${p.longitude}" data-l="${esc(p.name + (p.admin1 ? ', ' + p.admin1 : '') + ', ' + p.country)}">
+        ${esc(p.name)} <span style="color:var(--muted)">${esc([p.admin1, p.country].filter(Boolean).join(', '))}</span></button></li>`).join('');
+    list.querySelectorAll('button').forEach(b => b.onclick = () => {
+      list.hidden = true; $('#q').value = b.dataset.l;
+      load(b.dataset.lat, b.dataset.lon, b.dataset.l);
+    });
+  } catch {
+    list.hidden = true;
+    showBanner('Place search needs an outside connection, which this preview window blocks. Use the course list below, or download the file and open it in a browser to search anywhere.');
+  }
+}
+$('#go').onclick = search;
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+
+/* first paint: Manila-area default until a location is chosen */
+load(14.5764, 121.0851, 'Pasig, Philippines');
+</script>
+</body>
+</html>
