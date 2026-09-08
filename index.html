@@ -31,6 +31,8 @@
   --glow:#1B3226;
   --chip-ink:#12190F;
   --on-amber:#17130A;
+  --turf:#3F6B4A;
+  --turf-on:#345B3E;
   --breeze:#2E6E86;
   --breeze-on:#3C8AA6;
   --on-breeze:#F2F8FA;
@@ -50,6 +52,8 @@
   --glow:#E4EDE2;
   --chip-ink:#FFFFFF;
   --on-amber:#FFF8EC;
+  --turf:#2F6B45;
+  --turf-on:#255738;
   --breeze:#1F6B85;
   --breeze-on:#175A70;
   --on-breeze:#FFFFFF;
@@ -59,7 +63,7 @@
     --pine:#F6F4EC; --moss:#FFFFFF; --moss-2:#EDF0E9; --chalk:#17251C;
     --muted:#5F7267; --amber:#B87515; --good:#3E9C6A; --fair:#A08A18; --poor:#C0492F;
     --line:rgba(23,37,28,.14); --track:rgba(23,37,28,.09); --glow:#E4EDE2; --chip-ink:#FFFFFF; --on-amber:#FFF8EC;
-    --breeze:#1F6B85; --breeze-on:#175A70; --on-breeze:#FFFFFF;
+    --breeze:#1F6B85; --breeze-on:#175A70; --on-breeze:#FFFFFF; --turf:#2F6B45; --turf-on:#255738;
   }
 }
 *{box-sizing:border-box}
@@ -94,7 +98,24 @@ button{font:inherit;color:inherit;cursor:pointer}
 .finder input::placeholder{color:var(--muted)}
 .finder-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
 .finder button.locate{width:100%}
-.finder-row:has(.wind-btn){grid-template-columns:1fr auto}
+.tool-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tool-row:has(.wind-btn[hidden]){grid-template-columns:1fr}
+.grad-btn{background:var(--turf);border:1px solid transparent;color:var(--on-breeze);
+  padding:12px 18px;border-radius:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px}
+.grad-btn[aria-expanded="true"]{background:var(--turf-on)}
+.wind-btn{justify-content:center}
+.gradient{text-align:center}
+.gradient .cta{background:var(--moss-2);border:1px solid var(--line);border-radius:14px;
+  padding:14px 16px;font-size:14px;color:var(--chalk);width:100%;line-height:1.4}
+.gradient svg{width:min(210px,56vw);height:min(210px,56vw);display:block;margin:0 auto}
+.g-call{font-family:Fraunces,serif;font-size:22px;font-weight:600;margin:12px 0 2px;letter-spacing:-.01em}
+.g-call b{color:var(--amber)}
+.g-line{font-size:14.5px;color:var(--muted);line-height:1.5}
+.g-line b{color:var(--chalk);font-weight:700}
+.g-acts{display:flex;gap:8px;justify-content:center;margin-top:14px}
+.g-acts button{background:var(--moss-2);border:1px solid var(--line);color:var(--chalk);
+  border-radius:12px;padding:9px 14px;font-size:13px}
+.g-sub{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.45}
 .finder button{
   background:var(--moss);border:1px solid var(--line);color:var(--chalk);
   padding:12px 18px;border-radius:14px;white-space:nowrap;
@@ -205,12 +226,16 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
     <input id="q" type="search" placeholder="Search a course or city" autocomplete="off">
     <button id="go">Search</button>
   </div>
-  <div class="finder-row">
-    <button id="gps" class="locate">Use my location</button>
+  <button id="gps" class="locate">Use my location</button>
+  <div class="tool-row">
     <button id="wind-toggle" class="wind-btn" hidden aria-expanded="false" aria-controls="wind-panel" aria-label="Wind direction">Wind</button>
+    <button id="grad-toggle" class="grad-btn" aria-expanded="false" aria-controls="grad-panel">Gradient</button>
   </div>
   <section id="wind-panel" class="wind-panel" hidden>
     <div id="compass" class="compass"></div>
+  </section>
+  <section id="grad-panel" class="wind-panel" hidden>
+    <div id="gradient" class="gradient"></div>
   </section>
 </div>
 <ul id="results" class="results" hidden></ul>
@@ -560,6 +585,82 @@ function bind(){
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 
+
+/* ---------- green reader: AimPoint-style slope ---------- */
+const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null };
+
+const pct = deg => Math.tan(deg * Math.PI/180) * 100;
+const fingers = p => Math.max(0, Math.min(5, Math.round(Math.abs(p))));
+
+function levelSVG(up, side){
+  const c = 105, R = 78;
+  const k = 9;                                          // px per 1% of slope
+  const x = c + Math.max(-R, Math.min(R, side * k));
+  const y = c + Math.max(-R, Math.min(R, -up * k));
+  const rings = [26,52,78].map(r =>
+    `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="var(--line)" stroke-width="1.2"/>`).join('');
+  return `<svg viewBox="0 0 210 210" role="img" aria-label="Slope reading">
+    ${rings}
+    <line x1="${c-R}" y1="${c}" x2="${c+R}" y2="${c}" stroke="var(--line)" stroke-width="1"/>
+    <line x1="${c}" y1="${c-R}" x2="${c}" y2="${c+R}" stroke="var(--line)" stroke-width="1"/>
+    <text x="${c}" y="16" text-anchor="middle" font-size="10" fill="var(--muted)">UPHILL</text>
+    <text x="${c}" y="205" text-anchor="middle" font-size="10" fill="var(--muted)">DOWNHILL</text>
+    <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="13" fill="var(--amber)" opacity="0.9"/>
+    <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="13" fill="none" stroke="var(--chalk)" stroke-width="1.5"/>
+  </svg>`;
+}
+
+function paintGradient(){
+  const panel = document.getElementById('grad-panel');
+  const el = document.getElementById('gradient');
+  if (!panel || panel.hidden || !el) return;
+
+  if (!TILT.on || TILT.beta == null){
+    el.innerHTML = `<button class="cta" id="grad-on">Turn on slope reader</button>
+      <p class="g-sub">Lay the phone flat on the green between ball and hole, top edge pointing at the hole.
+      The reader gives the break in AimPoint percentages and converts it to fingers and paces.</p>`;
+    const b = document.getElementById('grad-on');
+    if (b) b.onclick = enableTilt;
+    return;
+  }
+
+  const live = { b: TILT.beta - TILT.zb, g: TILT.gamma - TILT.zg };
+  const src = TILT.hold || live;
+  const up = pct(src.b);                                  // + uphill toward the hole
+  let side = pct(src.g) * (TILT.flip ? -1 : 1);           // + green falls to the right
+  const f = fingers(side), paces = Math.abs(up);
+  const dir = Math.abs(side) < 0.3 ? null : (side > 0 ? 'left' : 'right');
+
+  const call = dir
+    ? `Aim <b>${f} finger${f === 1 ? '' : 's'}</b> ${dir} of the hole`
+    : `<b>Straight putt</b> — no break to play`;
+  const paceLine = Math.abs(up) < 0.3
+    ? 'Flat — normal pace.'
+    : (up > 0
+       ? `Uphill <b>${up.toFixed(1)}%</b> — add about <b>${paces.toFixed(1)} pace${paces >= 1.5 ? 's' : ''}</b> of speed.`
+       : `Downhill <b>${Math.abs(up).toFixed(1)}%</b> — take off about <b>${paces.toFixed(1)} pace${paces >= 1.5 ? 's' : ''}</b>.`);
+
+  el.innerHTML = levelSVG(up, side) +
+    `<p class="g-call">${call}</p>
+     <p class="g-line">Side slope <b>${Math.abs(side).toFixed(1)}%</b> falling ${dir ? (side > 0 ? 'right' : 'left') : 'level'} · ${paceLine}</p>
+     <div class="g-acts">
+       <button id="g-hold">${TILT.hold ? 'Live' : 'Hold'}</button>
+       <button id="g-zero">Zero</button>
+       <button id="g-flip">Flip L/R</button>
+     </div>
+     <p class="g-sub">Hold fingers at arm's length, aim the outside edge at the hole's high side.
+     Readings under 0.5% are inside the noise of any phone sensor.</p>`;
+
+  document.getElementById('g-hold').onclick = () => { TILT.hold = TILT.hold ? null : { ...live }; paintGradient(); };
+  document.getElementById('g-zero').onclick = () => { TILT.zb = TILT.beta; TILT.zg = TILT.gamma; TILT.hold = null; paintGradient(); };
+  document.getElementById('g-flip').onclick = () => { TILT.flip = !TILT.flip; paintGradient(); };
+}
+
+async function enableTilt(){
+  const ok = await askOrientation();
+  if (ok){ TILT.on = true; paintGradient(); }
+}
+
 /* ---------- pre-shot wind compass (GPS only) ---------- */
 const CMP = { heading: null, on: false, hour: null };
 
@@ -664,32 +765,53 @@ function labelRel(rel){
 }
 
 function onOrient(e){
+  if (e.beta != null && e.gamma != null){
+    const moved = TILT.beta == null ||
+      Math.abs(e.beta - TILT.beta) > 0.08 || Math.abs(e.gamma - TILT.gamma) > 0.08;
+    TILT.beta = TILT.beta == null ? e.beta : TILT.beta * 0.7 + e.beta * 0.3;   // smoothing
+    TILT.gamma = TILT.gamma == null ? e.gamma : TILT.gamma * 0.7 + e.gamma * 0.3;
+    if (moved && TILT.on && !TILT.hold) paintGradient();
+  }
   let hd = e.webkitCompassHeading;
   if (hd == null && e.alpha != null) hd = (360 - e.alpha) % 360;
   if (hd == null) return;
   if (CMP.heading == null || Math.abs(hd - CMP.heading) > 1.5){ CMP.heading = hd; paintCompass(); }
 }
 
-async function enableCompass(){
+async function askOrientation(){
   try {
     const DOE = window.DeviceOrientationEvent;
     if (DOE && typeof DOE.requestPermission === 'function'){
-      const res = await DOE.requestPermission();
-      if (res !== 'granted') return;
+      if (await DOE.requestPermission() !== 'granted') return false;
     }
-    CMP.on = true;
     window.addEventListener('deviceorientation', onOrient, true);
     window.addEventListener('deviceorientationabsolute', onOrient, true);
-    paintCompass();
-  } catch { /* unsupported — button simply stays */ }
+    return true;
+  } catch { return false; }
+}
+
+async function enableCompass(){
+  const ok = await askOrientation();
+  if (ok){ CMP.on = true; paintCompass(); }
 }
 
 const windToggle = document.getElementById('wind-toggle');
 const windPanel = document.getElementById('wind-panel');
+const gradToggle = document.getElementById('grad-toggle');
+const gradPanel = document.getElementById('grad-panel');
+gradToggle.onclick = () => {
+  const open = gradPanel.hidden;
+  gradPanel.hidden = !open;
+  gradToggle.setAttribute('aria-expanded', String(open));
+  if (open){ windPanel.hidden = true; windToggle.setAttribute('aria-expanded','false'); }
+  paintGradient();
+};
+
 windToggle.onclick = () => {
   const open = windPanel.hidden;
   windPanel.hidden = !open;
   windToggle.setAttribute('aria-expanded', String(open));
+  if (open){ gradPanel.hidden = true; gradToggle.setAttribute('aria-expanded','false'); }
   paintCompass();
 };
 
