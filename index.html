@@ -139,8 +139,6 @@ button{font:inherit;color:inherit;cursor:pointer}
 .wind-btn[aria-expanded="true"]{background:var(--breeze-on);color:var(--on-breeze)}
 .wind-btn .mini svg circle{stroke:rgba(255,255,255,.45)}
 .wind-btn .mini svg line, .wind-btn .mini svg circle[fill]{stroke:currentColor;fill:currentColor}
-.wind-btn .mini{width:22px;height:22px;display:block}
-.wind-btn .mini svg{width:22px;height:22px;display:block}
 .wind-panel{background:var(--moss);border:1px solid var(--line);border-radius:18px;padding:16px}
 .compass{text-align:center}
 .compass svg{width:min(220px,58vw);height:min(220px,58vw);display:block;margin:2px auto 0}
@@ -199,10 +197,12 @@ h2.sec{font-size:20px;margin:26px 0 12px}
 .alts .alt{display:flex;align-items:center;gap:8px;background:var(--moss);border:1px solid var(--line);
   border-radius:999px;padding:8px 14px}
 .alt-score{font-family:Fraunces,serif;font-weight:800}
-.tl-icon{font-size:13px;text-align:center}
-.score-icon{font-size:22px;margin-right:8px;vertical-align:middle}
+.ic{display:inline-block;vertical-align:-3px;flex:0 0 auto}
+.tl-icon{display:flex;justify-content:center;color:var(--muted)}
+.alt-ic{display:flex;color:var(--muted)}
+.score-icon{margin-right:9px;display:inline-block;vertical-align:-4px;color:var(--muted)}
 .week .day{font-weight:700}
-.week .when{color:var(--muted);font-size:14px}
+.week .when{color:var(--muted);font-size:14px;display:flex;align-items:center;gap:7px}
 .chip{font-family:Fraunces,serif;font-weight:800;font-size:17px;padding:2px 10px;border-radius:8px;color:var(--chip-ink)}
 .msg{color:var(--muted);padding:26px 0}
 .err{color:var(--poor)}
@@ -229,7 +229,7 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
   <button id="gps" class="locate">Use my location</button>
   <div class="tool-row">
     <button id="wind-toggle" class="wind-btn" hidden aria-expanded="false" aria-controls="wind-panel" aria-label="Wind direction">Wind</button>
-    <button id="grad-toggle" class="grad-btn" aria-expanded="false" aria-controls="grad-panel">Gradient</button>
+    <button id="grad-toggle" class="grad-btn" aria-expanded="false" aria-controls="grad-panel"><svg class="ic" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 21.4V2.6"/><path d="M6.4 3.8l11.4 3.6-11.4 3.7z"/><path d="M3.6 21.4h6"/></svg>Gradient</button>
   </div>
   <section id="wind-panel" class="wind-panel" hidden>
     <div id="compass" class="compass"></div>
@@ -304,16 +304,33 @@ function troubleOf(why){
   return { key: { rain:'Rain', wind:'Wind', heat:'Heat', storm:'Storms' }[worst[0]], pen: worst[1] };
 }
 
+
+/* ---------- line icons (monochrome, inherit text colour) ---------- */
+const ICON = {
+  sun:    '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.4M12 19.2v2.4M2.4 12h2.4M19.2 12h2.4M5.2 5.2l1.7 1.7M17.1 17.1l1.7 1.7M18.8 5.2l-1.7 1.7M6.9 17.1l-1.7 1.7"/>',
+  part:   '<circle cx="8.6" cy="8.4" r="3.2"/><path d="M8.6 1.9v1.9M2.1 8.4h1.9M4 3.8l1.4 1.4M13.2 3.8l-1.4 1.4"/><path d="M8.4 19.6a3.6 3.6 0 0 1 .5-7.2 4.7 4.7 0 0 1 9 1.3 3 3 0 0 1-.6 5.9z"/>',
+  cloud:  '<path d="M7.4 19.4a4 4 0 0 1 .5-8 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.7 6.6z"/>',
+  shower: '<path d="M7.6 15.8a3.7 3.7 0 0 1 .5-7.4 4.8 4.8 0 0 1 9.2 1.3 3 3 0 0 1-.6 6.1z"/><path d="M9 18.6l-1 2.6M14.4 18.6l-1 2.6"/>',
+  rain:   '<path d="M7.6 14.8a3.7 3.7 0 0 1 .5-7.4 4.8 4.8 0 0 1 9.2 1.3 3 3 0 0 1-.6 6.1z"/><path d="M7.6 17.6l-1.2 3.4M11.8 17.6l-1.2 3.4M16 17.6l-1.2 3.4"/>',
+  storm:  '<path d="M7.6 14.6a3.7 3.7 0 0 1 .5-7.4 4.8 4.8 0 0 1 9.2 1.3 3 3 0 0 1-.6 6.1z"/><path d="M12.8 15.4L9.6 20h3.9l-1.4 3.2"/>',
+  wind:   '<path d="M2.8 8.6h11a2.9 2.9 0 1 0-2.9-2.9"/><path d="M2.8 13h15a2.9 2.9 0 1 1-2.9 2.9"/><path d="M2.8 17.6h7.6"/>',
+  flag:   '<path d="M6.4 21.4V2.6"/><path d="M6.4 3.8l11.4 3.6-11.4 3.7z"/><path d="M3.6 21.4h6"/>'
+};
+function icon(name, size){
+  return `<svg class="ic" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"
+    fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICON[name] || ''}</svg>`;
+}
+
 function conditionOf(hours){
   const a = k => hours.reduce((s,h)=>s+(h[k]||0),0)/hours.length;
   const thunder = hours.some(h => [95,96,99].includes(h.code)) || a('cape') > 2000;
   const rain = a('precip'), pop = a('pop'), cloud = a('cloud');
-  if (thunder)        return { icon:'⛈️', word:'Thunderstorms' };
-  if (rain > 2.5)     return { icon:'🌧️', word:'Heavy rain' };
-  if (pop > 55 || rain > 0.4) return { icon:'🌦️', word:'Showers' };
-  if (cloud > 70)     return { icon:'☁️', word:'Overcast' };
-  if (cloud > 35)     return { icon:'⛅', word:'Partly cloudy' };
-  return { icon:'☀️', word:'Sunny' };
+  if (thunder)        return { key:'storm',  word:'Thunderstorms' };
+  if (rain > 2.5)     return { key:'rain',   word:'Heavy rain' };
+  if (pop > 55 || rain > 0.4) return { key:'shower', word:'Showers' };
+  if (cloud > 70)     return { key:'cloud',  word:'Overcast' };
+  if (cloud > 35)     return { key:'part',   word:'Partly cloudy' };
+  return { key:'sun', word:'Sunny' };
 }
 
 const tone = s => s >= 80 ? 'var(--good)' : s >= 62 ? 'var(--fair)' : s >= 40 ? 'var(--amber)' : 'var(--poor)';
@@ -445,7 +462,7 @@ function render(){
 
   const alts = a.ranked.filter(s => s !== pick).slice(0,3).map(s =>
     `<button class="alt" data-h="${key(s)}"><span>${fmt(s.start)}</span>
-      <span>${conditionOf(s.slice).icon}</span>
+      <span class="alt-ic">${icon(conditionOf(s.slice).key, 16)}</span>
       <span class="alt-score" style="color:${tone(s.score)}">${s.score}</span></button>`).join('');
 
   CMP.hour = currentHour();
@@ -516,7 +533,7 @@ function detailHTML(w){
     return `<li>
       <span class="tl-time">${fmt(new Date(w.start.getTime() + g.m0*60000))}</span>
       <span class="tl-hole">${g.h === g.hi ? 'hole ' + g.h : 'holes ' + g.h + '–' + g.hi}</span>
-      <span class="tl-icon" title="${c.word}">${c.icon}</span>
+      <span class="tl-icon" title="${c.word}">${icon(c.key, 15)}</span>
       <span class="track"><span style="width:${g.score}%;background:${tone(g.score)}"></span></span>
       <span class="tl-note">${t ? t.key + (t.pen > 22 ? ' — heavy' : t.pen > 12 ? ' — moderate' : ' — light') : 'Clear'}</span>
     </li>`;
@@ -524,7 +541,7 @@ function detailHTML(w){
 
   return `<div class="detail">
     <div class="detail-top"><span class="tee">${fmt(w.start)}</span>
-      <span class="score" style="color:${tone(w.score)}"><span class="score-icon">${conditionOf(f).icon}</span>${w.score}</span></div>
+      <span class="score" style="color:${tone(w.score)}"><span class="score-icon">${icon(conditionOf(f).key, 26)}</span>${w.score}</span></div>
     <div class="detail-sub">In the clubhouse by ${fmt(w.finish)} · ${conditionOf(f).word} · ${verdictWord(w.score)}</div>
     <ul class="factors">${rows}</ul>
     <h3 class="tl-head">Through the round</h3>
@@ -568,7 +585,7 @@ function weekHTML(focus){
     if (!a.best) return '';
     return `<li><span class="day">${d.date.toLocaleDateString([], {weekday:'short'})}<br>
       <span class="date">${d.date.toLocaleDateString([], {day:'numeric', month:'short'})}</span></span>
-      <span class="when">${conditionOf(a.best.slice).icon} ${fmt(a.best.start)} — ${fmt(a.best.finish)}</span>
+      <span class="when">${icon(conditionOf(a.best.slice).key, 15)} ${fmt(a.best.start)} — ${fmt(a.best.finish)}</span>
       <span class="chip" style="background:${tone(a.best.score)}">${a.best.score}</span></li>`;
   }).join('');
   return `<h2 class="sec">Best window each day</h2><ul class="week">${rows}</ul>`;
@@ -698,9 +715,9 @@ function compassSVG(rel, heading, wind){
       <path d="M0 0 L10 5 L0 10 z" fill="var(--amber)"/></marker></defs>
     <line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
       stroke="var(--amber)" stroke-width="3.5" stroke-linecap="round" marker-end="url(#ah)"/>
-    <text x="66" y="70" text-anchor="middle" font-size="19" font-weight="800"
-      fill="var(--chalk)" font-family="Fraunces, serif">${Math.round(wind)}</text>
-    <text x="66" y="84" text-anchor="middle" font-size="9" fill="var(--muted)">MPH</text>
+    <rect x="42" y="112" width="48" height="19" rx="9.5" fill="var(--moss-2)" stroke="var(--line)"/>
+    <text x="66" y="125.5" text-anchor="middle" font-size="11.5" font-weight="800"
+      fill="var(--chalk)" font-family="Karla, sans-serif">${Math.round(wind)} mph</text>
   </svg>`;
 }
 
@@ -737,7 +754,7 @@ function paintCompass(){
 
   const known = CMP.on && CMP.heading != null;
   const c = known ? windComponents(h.wind, h.dir, CMP.heading) : null;
-  btn.innerHTML = `<span class="mini">${miniDial(c ? c.rel : 0, 22)}</span>Wind ${Math.round(h.wind)} mph`;
+  btn.innerHTML = `${icon('wind', 19)}Wind ${Math.round(h.wind)} mph`;
 
   if (panel.hidden) return;                       // collapsed — nothing more to draw
   const el = document.getElementById('compass');
@@ -749,8 +766,9 @@ function paintCompass(){
     return;
   }
   const yardsL = Math.abs(c.head) * 0.95, yardsC = Math.abs(c.cross) * 0.85;
-  const along = c.head > 1 ? `plays <b>+${Math.round(yardsL)} yds longer</b>`
-              : c.head < -1 ? `plays <b>${Math.round(yardsL)} yds shorter</b>` : 'no length change';
+  const along = c.head > 1 ? `club <b>up</b> — a 150 yd shot plays like <b>${Math.round(150 + yardsL)} yds</b>`
+              : c.head < -1 ? `club <b>down</b> — a 150 yd shot plays like <b>${Math.round(150 - yardsL)} yds</b>`
+              : 'no change to your number';
   const side = Math.abs(c.cross) < 1 ? '' :
     ` · drifts <b>${Math.round(yardsC)} yds ${c.cross > 0 ? 'right' : 'left'}</b>`;
   el.innerHTML = compassSVG(c.rel, CMP.heading, h.wind) +
