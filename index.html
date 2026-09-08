@@ -80,7 +80,8 @@ button{font:inherit;color:inherit;cursor:pointer}
   color:var(--chalk);padding:14px 18px;border-radius:14px;font-size:16.5px;
 }
 .finder input::placeholder{color:var(--muted)}
-.finder-row{display:grid;grid-template-columns:1fr auto;gap:10px}
+.finder-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.finder button.locate{width:100%}
 .finder button{
   background:var(--moss);border:1px solid var(--line);color:var(--chalk);
   padding:12px 18px;border-radius:14px;white-space:nowrap;
@@ -141,13 +142,15 @@ h2.sec{font-size:20px;margin:26px 0 12px}
 .week .date{font-weight:400;color:var(--muted);font-size:12.5px}
 .tl-head{font-size:15px;margin:18px 0 10px;padding-top:14px;border-top:1px solid var(--line)}
 .timeline{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.timeline li{display:grid;grid-template-columns:56px 62px 1fr auto;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
+.timeline li{display:grid;grid-template-columns:54px 68px 20px 1fr auto;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
 .timeline .tl-time{color:var(--chalk);font-weight:700}
 .timeline .tl-note{text-align:right;white-space:nowrap}
 .alts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .alts .alt{display:flex;align-items:center;gap:8px;background:var(--moss);border:1px solid var(--line);
   border-radius:999px;padding:8px 14px}
 .alt-score{font-family:Fraunces,serif;font-weight:800}
+.tl-icon{font-size:13px;text-align:center}
+.score-icon{font-size:22px;margin-right:8px;vertical-align:middle}
 .week .day{font-weight:700}
 .week .when{color:var(--muted);font-size:14px}
 .chip{font-family:Fraunces,serif;font-weight:800;font-size:17px;padding:2px 10px;border-radius:8px;color:var(--chip-ink)}
@@ -169,11 +172,11 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
 </div>
 
 <div class="finder">
-  <input id="q" type="search" placeholder="Search a course or city" autocomplete="off">
   <div class="finder-row">
-    <button id="gps" class="locate">Use my location</button>
+    <input id="q" type="search" placeholder="Search a course or city" autocomplete="off">
     <button id="go">Search</button>
   </div>
+  <button id="gps" class="locate">Use my location</button>
 </div>
 <ul id="results" class="results" hidden></ul>
 <div class="browse" id="browse"><select id="courses"></select></div>
@@ -202,7 +205,9 @@ function hourScore(h){
   const windPen = Math.max(0, h.wind - 8) * 2.2 + Math.max(0, h.gust - 16) * 1.3;
   const heatPen = h.feels > 34 ? (h.feels - 34) * 2.0 + Math.max(0, h.feels - 40) * 4.5
                 : (h.feels < 10 ? (10 - h.feels) * 2.6 : 0);
-  const stormPen = [95,96,99].includes(h.code) ? 55 : ([80,81,82].includes(h.code) ? 12 : 0);
+  const thunder = [95,96,99].includes(h.code);
+  const stormPen = thunder ? 55 : (h.cape > 2000 ? 22 : h.cape > 1200 ? 10 : 0)
+                 + ([80,81,82].includes(h.code) ? 12 : 0);
   const uvPen = h.uv > 10 ? 5 : 0;
   s -= rainPen + Math.min(35, windPen) + Math.min(35, heatPen) + stormPen + uvPen;
   why = { rain: rainPen, wind: Math.min(35, windPen), heat: Math.min(35, heatPen), storm: stormPen };
@@ -239,6 +244,18 @@ function troubleOf(why){
   return { key: { rain:'Rain', wind:'Wind', heat:'Heat', storm:'Storms' }[worst[0]], pen: worst[1] };
 }
 
+function conditionOf(hours){
+  const a = k => hours.reduce((s,h)=>s+(h[k]||0),0)/hours.length;
+  const thunder = hours.some(h => [95,96,99].includes(h.code)) || a('cape') > 2000;
+  const rain = a('precip'), pop = a('pop'), cloud = a('cloud');
+  if (thunder)        return { icon:'⛈️', word:'Thunderstorms' };
+  if (rain > 2.5)     return { icon:'🌧️', word:'Heavy rain' };
+  if (pop > 55 || rain > 0.4) return { icon:'🌦️', word:'Showers' };
+  if (cloud > 70)     return { icon:'☁️', word:'Overcast' };
+  if (cloud > 35)     return { icon:'⛅', word:'Partly cloudy' };
+  return { icon:'☀️', word:'Sunny' };
+}
+
 const tone = s => s >= 80 ? 'var(--good)' : s >= 62 ? 'var(--fair)' : s >= 40 ? 'var(--amber)' : 'var(--poor)';
 const verdictWord = s => s >= 85 ? 'Play' : s >= 70 ? 'Good round' : s >= 55 ? 'Playable' : s >= 35 ? 'Grind' : 'Sit it out';
 const fmt = d => d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
@@ -248,7 +265,7 @@ async function load(lat, lon, label){
   STATE.lat = lat; STATE.lon = lon; STATE.label = label;
   app.innerHTML = '<p class="msg">Reading the sky over ' + esc(label) + '…</p>';
   const url = 'https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+
-    '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,uv_index,relative_humidity_2m'+
+    '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,uv_index,relative_humidity_2m,cloud_cover,cape'+
     '&daily=sunrise,sunset,precipitation_sum&timezone=auto&forecast_days=8&wind_speed_unit=mph';
   try {
     const r = await fetch(url);
@@ -272,7 +289,8 @@ function parse(j){
     temp: H.temperature_2m[i], feels: H.apparent_temperature[i],
     pop: H.precipitation_probability[i] ?? 0, precip: H.precipitation[i] ?? 0,
     code: H.weather_code[i], wind: H.wind_speed_10m[i], gust: H.wind_gusts_10m[i],
-    dir: H.wind_direction_10m[i], uv: H.uv_index[i] ?? 0, rh: H.relative_humidity_2m[i]
+    dir: H.wind_direction_10m[i], uv: H.uv_index[i] ?? 0, rh: H.relative_humidity_2m[i],
+    cloud: H.cloud_cover?.[i] ?? 50, cape: H.cape?.[i] ?? 0
   }));
   const days = j.daily.time.map((d,i)=>({
     date: new Date(d + 'T12:00'),
@@ -307,7 +325,7 @@ function demoData(lat){
         code: pop > 80 && mood > 0.8 ? 95 : pop > 60 ? 80 : 3,
         wind: +(5 + solar * 7 * mood + 2).toFixed(1),
         gust: +(9 + solar * 13 * mood).toFixed(1),
-        dir: 250, uv: +(solar * 11).toFixed(1),
+        dir: 250, uv: +(solar * 11).toFixed(1), cloud: Math.round(30 + conv*60*mood), cape: Math.round(conv*2600*mood),
         rh: Math.round(95 - solar * 25 + mood * 5)
       });
     }
@@ -367,6 +385,7 @@ function render(){
 
   const alts = a.ranked.filter(s => s !== pick).slice(0,3).map(s =>
     `<button class="alt" data-h="${key(s)}"><span>${fmt(s.start)}</span>
+      <span>${conditionOf(s.slice).icon}</span>
       <span class="alt-score" style="color:${tone(s.score)}">${s.score}</span></button>`).join('');
 
   app.innerHTML = note + `
@@ -410,25 +429,42 @@ function detailHTML(w){
 
   const N = STATE.holes;
   const pace = ROUND_MIN[N] / N;                       // minutes per hole
-  const holeAt = ms => Math.min(N, Math.max(1, Math.floor(ms / 60000 / pace) + 1));
-  const timeline = w.parts.map(p => {
-    const from = new Date(Math.max(p.h.t.getTime(), w.start.getTime()));
-    const to   = new Date(Math.min(p.h.t.getTime() + 36e5, w.finish.getTime()));
-    const h1 = holeAt(from - w.start);
-    const h2 = Math.max(h1, holeAt(Math.max(0, to - w.start - 1)));
-    const t = troubleOf(p.why);
+  const scoreBetween = (m0, m1) => {                   // weighted score over a minute range
+    const t0 = w.start.getTime() + m0*60000, t1 = w.start.getTime() + m1*60000;
+    let acc = 0, tot = 0, worstWhy = null, worstPen = -1, cond = [];
+    w.parts.forEach(p => {
+      const a = p.h.t.getTime(), b = a + 36e5;
+      const ov = Math.min(b, t1) - Math.max(a, t0);
+      if (ov <= 0) return;
+      acc += p.score * ov; tot += ov; cond.push(p.h);
+      const t = troubleOf(p.why);
+      if (t && t.pen > worstPen){ worstPen = t.pen; worstWhy = t; }
+    });
+    return { score: tot ? Math.round(acc/tot) : 100, trouble: worstWhy, cond };
+  };
+  const groups = [];
+  for (let h = 1; h <= N; h += 3){
+    const hi = Math.min(N, h + 2);
+    const m0 = (h - 1) * pace, m1 = hi * pace;
+    const g = scoreBetween(m0, m1);
+    groups.push({ h, hi, m0, ...g });
+  }
+  const timeline = groups.map(g => {
+    const t = g.trouble;
+    const c = conditionOf(g.cond.length ? g.cond : w.slice);
     return `<li>
-      <span class="tl-time">${fmt(from)}</span>
-      <span class="tl-hole">${h1 === h2 ? 'hole ' + h1 : 'holes ' + h1 + '–' + h2}</span>
-      <span class="track"><span style="width:${p.score}%;background:${tone(p.score)}"></span></span>
+      <span class="tl-time">${fmt(new Date(w.start.getTime() + g.m0*60000))}</span>
+      <span class="tl-hole">${g.h === g.hi ? 'hole ' + g.h : 'holes ' + g.h + '–' + g.hi}</span>
+      <span class="tl-icon" title="${c.word}">${c.icon}</span>
+      <span class="track"><span style="width:${g.score}%;background:${tone(g.score)}"></span></span>
       <span class="tl-note">${t ? t.key + (t.pen > 22 ? ' — heavy' : t.pen > 12 ? ' — moderate' : ' — light') : 'Clear'}</span>
     </li>`;
   }).join('');
 
   return `<div class="detail">
     <div class="detail-top"><span class="tee">${fmt(w.start)}</span>
-      <span class="score" style="color:${tone(w.score)}">${w.score}</span></div>
-    <div class="detail-sub">In the clubhouse by ${fmt(w.finish)} · ${verdictWord(w.score)}</div>
+      <span class="score" style="color:${tone(w.score)}"><span class="score-icon">${conditionOf(f).icon}</span>${w.score}</span></div>
+    <div class="detail-sub">In the clubhouse by ${fmt(w.finish)} · ${conditionOf(f).word} · ${verdictWord(w.score)}</div>
     <ul class="factors">${rows}</ul>
     <h3 class="tl-head">Through the round</h3>
     <ul class="timeline">${timeline}</ul>
@@ -471,7 +507,7 @@ function weekHTML(focus){
     if (!a.best) return '';
     return `<li><span class="day">${d.date.toLocaleDateString([], {weekday:'short'})}<br>
       <span class="date">${d.date.toLocaleDateString([], {day:'numeric', month:'short'})}</span></span>
-      <span class="when">${fmt(a.best.start)} — ${fmt(a.best.finish)}</span>
+      <span class="when">${conditionOf(a.best.slice).icon} ${fmt(a.best.start)} — ${fmt(a.best.finish)}</span>
       <span class="chip" style="background:${tone(a.best.score)}">${a.best.score}</span></li>`;
   }).join('');
   return `<h2 class="sec">Best window each day</h2><ul class="week">${rows}</ul>`;
