@@ -124,7 +124,8 @@ button{font:inherit;color:inherit;cursor:pointer}
   background:var(--moss);border:1px solid var(--line);color:var(--chalk);
   padding:12px 18px;border-radius:14px;white-space:nowrap;
 }
-.browse{margin-bottom:22px}
+.browse{margin-bottom:12px}
+.tools{display:grid;gap:10px;margin-bottom:22px}
 .browse[hidden]{display:none}
 .finder button.locate{background:var(--amber);color:var(--on-amber);border-color:transparent;font-weight:700}
 .results{list-style:none;margin:-4px 0 20px;padding:0;background:var(--moss);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
@@ -234,6 +235,11 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
     <button id="go">Search</button>
   </div>
   <button id="gps" class="locate">Use my location</button>
+</div>
+<ul id="results" class="results" hidden></ul>
+<div class="browse" id="browse"><select id="courses"></select></div>
+
+<div class="tools">
   <div class="tool-row">
     <button id="wind-toggle" class="wind-btn" aria-expanded="false" aria-controls="wind-panel" aria-label="Wind direction">Wind</button>
     <button id="grad-toggle" class="grad-btn" aria-expanded="false" aria-controls="grad-panel"><svg class="ic" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 21.4V2.6"/><path d="M6.4 3.8l11.4 3.6-11.4 3.7z"/><path d="M3.6 21.4h6"/></svg>Gradient</button>
@@ -245,8 +251,6 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
     <div id="gradient" class="gradient"></div>
   </section>
 </div>
-<ul id="results" class="results" hidden></ul>
-<div class="browse" id="browse"><select id="courses"></select></div>
 <p id="banner" hidden></p>
 
 <div id="app"><p class="msg">Loading a course-side forecast…</p></div>
