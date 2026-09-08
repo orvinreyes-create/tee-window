@@ -31,6 +31,9 @@
   --glow:#1B3226;
   --chip-ink:#12190F;
   --on-amber:#17130A;
+  --breeze:#2E6E86;
+  --breeze-on:#3C8AA6;
+  --on-breeze:#F2F8FA;
 }
 :root[data-theme="light"]{
   --pine:#F6F4EC;
@@ -47,12 +50,16 @@
   --glow:#E4EDE2;
   --chip-ink:#FFFFFF;
   --on-amber:#FFF8EC;
+  --breeze:#1F6B85;
+  --breeze-on:#175A70;
+  --on-breeze:#FFFFFF;
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]):not([data-theme="light"]){
     --pine:#F6F4EC; --moss:#FFFFFF; --moss-2:#EDF0E9; --chalk:#17251C;
     --muted:#5F7267; --amber:#B87515; --good:#3E9C6A; --fair:#A08A18; --poor:#C0492F;
     --line:rgba(23,37,28,.14); --track:rgba(23,37,28,.09); --glow:#E4EDE2; --chip-ink:#FFFFFF; --on-amber:#FFF8EC;
+    --breeze:#1F6B85; --breeze-on:#175A70; --on-breeze:#FFFFFF;
   }
 }
 *{box-sizing:border-box}
@@ -65,7 +72,7 @@ body{
   font-family:Karla,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:16px; line-height:1.5;
   -webkit-font-smoothing:antialiased;
-  padding:20px 18px 110px;
+  padding:20px 18px 64px;
   max-width:560px; margin:0 auto;
 }
 h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0;letter-spacing:-.01em}
@@ -87,6 +94,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .finder input::placeholder{color:var(--muted)}
 .finder-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
 .finder button.locate{width:100%}
+.finder-row:has(.wind-btn){grid-template-columns:1fr auto}
 .finder button{
   background:var(--moss);border:1px solid var(--line);color:var(--chalk);
   padding:12px 18px;border-radius:14px;white-space:nowrap;
@@ -104,28 +112,18 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* ── hero ── */
 .hero{margin-bottom:8px}
-/* ── on-course wind: dock + sheet ── */
-.dock{
-  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));
-  display:flex;align-items:center;gap:11px;z-index:40;
-  background:var(--moss);border:1px solid var(--line);border-radius:999px;
-  padding:9px 18px 9px 11px;box-shadow:0 8px 26px rgba(0,0,0,.35);
-}
-.dock-dial{width:34px;height:34px;flex:0 0 34px;display:block}
-.dock-dial svg{width:34px;height:34px;display:block}
-.dock-txt{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15}
-.dock-txt b{font-family:Fraunces,serif;font-size:17px;font-weight:800}
-.dock-txt span{font-size:11.5px;color:var(--muted)}
-.sheet{position:fixed;inset:0;z-index:50;background:rgba(6,12,9,.62);
-  display:flex;align-items:flex-end;justify-content:center;padding:14px}
-.sheet-card{background:var(--moss);border:1px solid var(--line);border-radius:22px;
-  padding:18px 18px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:420px}
-.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.sheet-head h2{font-size:19px}
-.sheet-head button{background:none;border:0;font-size:18px;color:var(--muted);padding:4px 8px}
+/* ── on-course wind panel ── */
+.wind-btn{background:var(--breeze);border:1px solid transparent;color:var(--on-breeze);
+  padding:12px 18px;border-radius:14px;white-space:nowrap;display:flex;align-items:center;gap:9px;font-weight:700}
+.wind-btn[aria-expanded="true"]{background:var(--breeze-on);color:var(--on-breeze)}
+.wind-btn .mini svg circle{stroke:rgba(255,255,255,.45)}
+.wind-btn .mini svg line, .wind-btn .mini svg circle[fill]{stroke:currentColor;fill:currentColor}
+.wind-btn .mini{width:22px;height:22px;display:block}
+.wind-btn .mini svg{width:22px;height:22px;display:block}
+.wind-panel{background:var(--moss);border:1px solid var(--line);border-radius:18px;padding:16px}
 .compass{text-align:center}
-.compass svg{width:min(240px,64vw);height:min(240px,64vw);display:block;margin:4px auto 0}
-.compass .cta{margin:10px auto 0;background:var(--moss-2);border:1px solid var(--line);border-radius:14px;
+.compass svg{width:min(220px,58vw);height:min(220px,58vw);display:block;margin:2px auto 0}
+.compass .cta{margin:2px auto 0;background:var(--moss-2);border:1px solid var(--line);border-radius:14px;
   padding:14px 16px;font-size:14px;color:var(--chalk);width:100%;line-height:1.4}
 .compass .read{font-size:15px;color:var(--muted);margin-top:12px;line-height:1.45}
 .compass .read b{color:var(--chalk);font-weight:700}
@@ -207,25 +205,19 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
     <input id="q" type="search" placeholder="Search a course or city" autocomplete="off">
     <button id="go">Search</button>
   </div>
-  <button id="gps" class="locate">Use my location</button>
+  <div class="finder-row">
+    <button id="gps" class="locate">Use my location</button>
+    <button id="wind-toggle" class="wind-btn" hidden aria-expanded="false" aria-controls="wind-panel" aria-label="Wind direction">Wind</button>
+  </div>
+  <section id="wind-panel" class="wind-panel" hidden>
+    <div id="compass" class="compass"></div>
+  </section>
 </div>
 <ul id="results" class="results" hidden></ul>
 <div class="browse" id="browse"><select id="courses"></select></div>
 <p id="banner" hidden></p>
 
 <div id="app"><p class="msg">Loading a course-side forecast…</p></div>
-
-<button id="dock" class="dock" hidden aria-haspopup="dialog">
-  <span class="dock-dial" id="dock-dial"></span>
-  <span class="dock-txt"><b id="dock-speed">—</b><span id="dock-note">Wind</span></span>
-</button>
-
-<div id="sheet" class="sheet" hidden role="dialog" aria-modal="true" aria-label="Wind on course">
-  <div class="sheet-card">
-    <div class="sheet-head"><h2>Wind right now</h2><button id="sheet-x" aria-label="Close">✕</button></div>
-    <div id="compass" class="compass"></div>
-  </div>
-</div>
 
 <footer>
   Scores weigh rain, wind and gusts, heat stress, storm risk and remaining daylight across your whole round — not just the hour you tee off.
@@ -622,22 +614,32 @@ function miniDial(rel){
     <circle cx="17" cy="17" r="2" fill="var(--amber)"/></svg>`;
 }
 
+function miniDial(rel, size){
+  const c = size/2, R = c*0.62, r2 = c*0.4;
+  const a = rel * Math.PI/180;
+  return `<svg viewBox="0 0 ${size} ${size}" aria-hidden="true">
+    <circle cx="${c}" cy="${c}" r="${c*0.88}" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+    <line x1="${(c+Math.sin(a)*R).toFixed(1)}" y1="${(c-Math.cos(a)*R).toFixed(1)}"
+          x2="${(c-Math.sin(a)*r2).toFixed(1)}" y2="${(c+Math.cos(a)*r2).toFixed(1)}"
+      stroke="var(--amber)" stroke-width="${(size*0.11).toFixed(1)}" stroke-linecap="round"/>
+    <circle cx="${c}" cy="${c}" r="${(size*0.07).toFixed(1)}" fill="var(--amber)"/></svg>`;
+}
+
 function paintCompass(){
-  const dock = document.getElementById('dock');
-  if (!dock) return;
+  const btn = document.getElementById('wind-toggle');
+  const panel = document.getElementById('wind-panel');
+  if (!btn || !panel) return;
   const h = CMP.hour || currentHour();
-  dock.hidden = !(STATE.gps && h);
-  if (dock.hidden){ document.getElementById('sheet').hidden = true; return; }
+  const available = STATE.gps && !!h;
+  btn.hidden = !available;
+  if (!available){ panel.hidden = true; btn.setAttribute('aria-expanded','false'); return; }
 
   const known = CMP.on && CMP.heading != null;
   const c = known ? windComponents(h.wind, h.dir, CMP.heading) : null;
-  document.getElementById('dock-dial').innerHTML = miniDial(c ? c.rel : 0);
-  document.getElementById('dock-speed').textContent = Math.round(h.wind) + ' mph';
-  document.getElementById('dock-note').textContent =
-    known ? labelRel(c.rel) : 'Tap for wind on course';
+  btn.innerHTML = `<span class="mini">${miniDial(c ? c.rel : 0, 22)}</span>Wind ${Math.round(h.wind)} mph`;
 
+  if (panel.hidden) return;                       // collapsed — nothing more to draw
   const el = document.getElementById('compass');
-  if (!el) return;
   if (!known){
     el.innerHTML = `<button class="cta" id="cmp-on">Turn on compass</button>
       <p class="sub">Aim your phone down the target line and the dial reads the wind relative to your shot.</p>`;
@@ -682,11 +684,14 @@ async function enableCompass(){
   } catch { /* unsupported — button simply stays */ }
 }
 
-const sheetEl = document.getElementById('sheet');
-document.getElementById('dock').onclick = () => { sheetEl.hidden = false; paintCompass(); };
-document.getElementById('sheet-x').onclick = () => { sheetEl.hidden = true; };
-sheetEl.onclick = e => { if (e.target === sheetEl) sheetEl.hidden = true; };
-document.addEventListener('keydown', e => { if (e.key === 'Escape') sheetEl.hidden = true; });
+const windToggle = document.getElementById('wind-toggle');
+const windPanel = document.getElementById('wind-panel');
+windToggle.onclick = () => {
+  const open = windPanel.hidden;
+  windPanel.hidden = !open;
+  windToggle.setAttribute('aria-expanded', String(open));
+  paintCompass();
+};
 
 /* ---------- appearance ---------- */
 function setTheme(mode){
