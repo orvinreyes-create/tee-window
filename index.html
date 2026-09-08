@@ -91,15 +91,19 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* ── location bar ── */
 .finder{display:grid;gap:10px;margin-bottom:14px}
+.input-wrap{position:relative}
+.clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--moss-2);
+  border:1px solid var(--line);color:var(--muted);width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1}
 .finder input{
-  width:100%;background:var(--moss);border:1px solid var(--line);
+  width:100%;padding-right:46px;background:var(--moss);border:1px solid var(--line);
   color:var(--chalk);padding:14px 18px;border-radius:14px;font-size:16.5px;
 }
 .finder input::placeholder{color:var(--muted)}
+.finder input::-webkit-search-cancel-button{display:none}
 .finder-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
 .finder button.locate{width:100%}
 .tool-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.tool-row:has(.wind-btn[hidden]){grid-template-columns:1fr}
 .grad-btn{background:var(--turf);border:1px solid transparent;color:var(--on-breeze);
   padding:12px 18px;border-radius:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px}
 .grad-btn[aria-expanded="true"]{background:var(--turf-on)}
@@ -223,12 +227,15 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
 
 <div class="finder">
   <div class="finder-row">
-    <input id="q" type="search" placeholder="Search a course or city" autocomplete="off">
+    <div class="input-wrap">
+      <input id="q" type="search" placeholder="Search a course or city" autocomplete="off">
+      <button id="clear" class="clear" hidden aria-label="Clear search">✕</button>
+    </div>
     <button id="go">Search</button>
   </div>
   <button id="gps" class="locate">Use my location</button>
   <div class="tool-row">
-    <button id="wind-toggle" class="wind-btn" hidden aria-expanded="false" aria-controls="wind-panel" aria-label="Wind direction">Wind</button>
+    <button id="wind-toggle" class="wind-btn" aria-expanded="false" aria-controls="wind-panel" aria-label="Wind direction">Wind</button>
     <button id="grad-toggle" class="grad-btn" aria-expanded="false" aria-controls="grad-panel"><svg class="ic" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 21.4V2.6"/><path d="M6.4 3.8l11.4 3.6-11.4 3.7z"/><path d="M3.6 21.4h6"/></svg>Gradient</button>
   </div>
   <section id="wind-panel" class="wind-panel" hidden>
@@ -340,6 +347,8 @@ const fmt = d => d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
 /* ---------- data ---------- */
 async function load(lat, lon, label){
   STATE.lat = lat; STATE.lon = lon; STATE.label = label;
+  const sc = document.getElementById('courses');
+  if (sc && !(sc.selectedIndex > 0 && sc.options[sc.selectedIndex].text === label)) sc.selectedIndex = 0;
   app.innerHTML = '<p class="msg">Reading the sky over ' + esc(label) + '…</p>';
   const url = 'https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+
     '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,uv_index,relative_humidity_2m,cloud_cover,cape'+
@@ -748,9 +757,7 @@ function paintCompass(){
   const panel = document.getElementById('wind-panel');
   if (!btn || !panel) return;
   const h = CMP.hour || currentHour();
-  const available = STATE.gps && !!h;
-  btn.hidden = !available;
-  if (!available){ panel.hidden = true; btn.setAttribute('aria-expanded','false'); return; }
+  if (!h) return;
 
   const known = CMP.on && CMP.heading != null;
   const c = known ? windComponents(h.wind, h.dir, CMP.heading) : null;
@@ -759,8 +766,11 @@ function paintCompass(){
   if (panel.hidden) return;                       // collapsed — nothing more to draw
   const el = document.getElementById('compass');
   if (!known){
-    el.innerHTML = `<button class="cta" id="cmp-on">Turn on compass</button>
-      <p class="sub">Aim your phone down the target line and the dial reads the wind relative to your shot.</p>`;
+    el.innerHTML = `<p class="read"><b>${Math.round(h.wind)} mph</b> from the ${compassPoint(h.dir)}, gusting ${Math.round(h.gust)}</p>
+      <button class="cta" id="cmp-on">Turn on compass</button>
+      <p class="sub">${STATE.gps
+        ? 'Aim your phone down the target line and the dial reads the wind relative to your shot.'
+        : 'Showing forecast wind for ' + esc(STATE.label) + '. Tap "Use my location" for readings where you are standing.'}</p>`;
     const b = document.getElementById('cmp-on');
     if (b) b.onclick = enableCompass;
     return;
@@ -773,7 +783,12 @@ function paintCompass(){
     ` · drifts <b>${Math.round(yardsC)} yds ${c.cross > 0 ? 'right' : 'left'}</b>`;
   el.innerHTML = compassSVG(c.rel, CMP.heading, h.wind) +
     `<div class="read"><b>${labelRel(c.rel)}</b> — ${along}${side}</div>
-     <p class="sub">Gusting to ${Math.round(h.gust)} mph · mid-iron estimate · point the phone at your target</p>`;
+     <p class="sub">Gusting to ${Math.round(h.gust)} mph · from the ${compassPoint(h.dir)} · point the phone at your target${STATE.gps ? '' : ' · forecast is for ' + esc(STATE.label)}</p>`;
+}
+
+function compassPoint(deg){
+  return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][
+    Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
 }
 
 function labelRel(rel){
@@ -823,6 +838,12 @@ gradToggle.onclick = () => {
   gradToggle.setAttribute('aria-expanded', String(open));
   if (open){ windPanel.hidden = true; windToggle.setAttribute('aria-expanded','false'); }
   paintGradient();
+};
+
+const clearBtn = document.getElementById('clear');
+clearBtn.onclick = () => {
+  $('#q').value = ''; clearBtn.hidden = true;
+  $('#results').hidden = true; $('#q').focus();
 };
 
 windToggle.onclick = () => {
@@ -977,7 +998,6 @@ function matchCourses(q){
 
 function showResults(items){
   const list = $('#results');
-  $('#browse').hidden = !!$('#q').value.trim();
   if (!items.length){ list.hidden = true; list.innerHTML = ''; return; }
   list.hidden = false;
   list.innerHTML = items.map(i =>
@@ -1000,7 +1020,7 @@ function localResults(q){
 let searchTimer;
 $('#q').addEventListener('input', () => {
   const q = $('#q').value.trim();
-  $('#browse').hidden = !!q;
+  document.getElementById('clear').hidden = !q;
   if (!q){ $('#results').hidden = true; }
   showResults(localResults(q));
   clearTimeout(searchTimer);
