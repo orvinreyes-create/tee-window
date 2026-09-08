@@ -65,7 +65,7 @@ body{
   font-family:Karla,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:16px; line-height:1.5;
   -webkit-font-smoothing:antialiased;
-  padding:20px 18px 64px;
+  padding:20px 18px 110px;
   max-width:560px; margin:0 auto;
 }
 h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0;letter-spacing:-.01em}
@@ -104,14 +104,32 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* ── hero ── */
 .hero{margin-bottom:8px}
-.hero-row{display:flex;align-items:flex-start;gap:14px;justify-content:space-between}
-.hero-row .verdict{flex:1;min-width:0}
-.compass{width:132px;flex:0 0 132px;text-align:center}
-.compass svg{width:132px;height:132px;display:block}
-.compass .cta{margin-top:2px;background:var(--moss);border:1px solid var(--line);border-radius:12px;
-  padding:8px 10px;font-size:12px;color:var(--muted);width:100%;line-height:1.3}
-.compass .read{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
+/* ── on-course wind: dock + sheet ── */
+.dock{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;gap:11px;z-index:40;
+  background:var(--moss);border:1px solid var(--line);border-radius:999px;
+  padding:9px 18px 9px 11px;box-shadow:0 8px 26px rgba(0,0,0,.35);
+}
+.dock-dial{width:34px;height:34px;flex:0 0 34px;display:block}
+.dock-dial svg{width:34px;height:34px;display:block}
+.dock-txt{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15}
+.dock-txt b{font-family:Fraunces,serif;font-size:17px;font-weight:800}
+.dock-txt span{font-size:11.5px;color:var(--muted)}
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(6,12,9,.62);
+  display:flex;align-items:flex-end;justify-content:center;padding:14px}
+.sheet-card{background:var(--moss);border:1px solid var(--line);border-radius:22px;
+  padding:18px 18px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:420px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sheet-head h2{font-size:19px}
+.sheet-head button{background:none;border:0;font-size:18px;color:var(--muted);padding:4px 8px}
+.compass{text-align:center}
+.compass svg{width:min(240px,64vw);height:min(240px,64vw);display:block;margin:4px auto 0}
+.compass .cta{margin:10px auto 0;background:var(--moss-2);border:1px solid var(--line);border-radius:14px;
+  padding:14px 16px;font-size:14px;color:var(--chalk);width:100%;line-height:1.4}
+.compass .read{font-size:15px;color:var(--muted);margin-top:12px;line-height:1.45}
 .compass .read b{color:var(--chalk);font-weight:700}
+.compass .sub{font-size:12.5px;color:var(--muted);margin-top:8px}
 .place{color:var(--muted);font-size:14px;margin-bottom:6px}
 .verdict{font-size:clamp(30px,9vw,42px);line-height:1.06;margin-bottom:10px}
 .verdict em{font-style:normal;color:var(--amber)}
@@ -196,6 +214,18 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
 <p id="banner" hidden></p>
 
 <div id="app"><p class="msg">Loading a course-side forecast…</p></div>
+
+<button id="dock" class="dock" hidden aria-haspopup="dialog">
+  <span class="dock-dial" id="dock-dial"></span>
+  <span class="dock-txt"><b id="dock-speed">—</b><span id="dock-note">Wind</span></span>
+</button>
+
+<div id="sheet" class="sheet" hidden role="dialog" aria-modal="true" aria-label="Wind on course">
+  <div class="sheet-card">
+    <div class="sheet-head"><h2>Wind right now</h2><button id="sheet-x" aria-label="Close">✕</button></div>
+    <div id="compass" class="compass"></div>
+  </div>
+</div>
 
 <footer>
   Scores weigh rain, wind and gusts, heat stress, storm risk and remaining daylight across your whole round — not just the hour you tee off.
@@ -405,10 +435,7 @@ function render(){
   app.innerHTML = note + `
    <div class="hero">
      <div class="place">${esc(STATE.label)} · ${STATE.holes} holes · ${dayName(di)}${di ? ' ' + a.d.date.toLocaleDateString([], {day:'numeric', month:'short'}) : ''}</div>
-     <div class="hero-row">
-       <h1 class="verdict">${verdictWord(a.best.score)} at <em>${fmt(a.best.start)}</em></h1>
-       ${STATE.gps ? '<div id="compass" class="compass"></div>' : ''}
-     </div>
+     <h1 class="verdict">${verdictWord(a.best.score)} at <em>${fmt(a.best.start)}</em></h1>
      <p class="subline">${headline(a)}</p>
    </div>
    <div class="holes">
@@ -584,25 +611,48 @@ function compassSVG(rel, heading, wind){
   </svg>`;
 }
 
+function miniDial(rel){
+  const a = rel * Math.PI/180;
+  const x1 = 17 + Math.sin(a)*11, y1 = 17 - Math.cos(a)*11;
+  const x2 = 17 - Math.sin(a)*7,  y2 = 17 + Math.cos(a)*7;
+  return `<svg viewBox="0 0 34 34" aria-hidden="true">
+    <circle cx="17" cy="17" r="15" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+    <line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
+      stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="17" cy="17" r="2" fill="var(--amber)"/></svg>`;
+}
+
 function paintCompass(){
+  const dock = document.getElementById('dock');
+  if (!dock) return;
+  const h = CMP.hour || currentHour();
+  dock.hidden = !(STATE.gps && h);
+  if (dock.hidden){ document.getElementById('sheet').hidden = true; return; }
+
+  const known = CMP.on && CMP.heading != null;
+  const c = known ? windComponents(h.wind, h.dir, CMP.heading) : null;
+  document.getElementById('dock-dial').innerHTML = miniDial(c ? c.rel : 0);
+  document.getElementById('dock-speed').textContent = Math.round(h.wind) + ' mph';
+  document.getElementById('dock-note').textContent =
+    known ? labelRel(c.rel) : 'Tap for wind on course';
+
   const el = document.getElementById('compass');
   if (!el) return;
-  const h = CMP.hour || currentHour();
-  if (!h){ el.innerHTML = ''; return; }
-  if (!CMP.on || CMP.heading == null){
-    el.innerHTML = `<button class="cta" id="cmp-on">Point-and-check wind<br><b>Turn on compass</b></button>`;
+  if (!known){
+    el.innerHTML = `<button class="cta" id="cmp-on">Turn on compass</button>
+      <p class="sub">Aim your phone down the target line and the dial reads the wind relative to your shot.</p>`;
     const b = document.getElementById('cmp-on');
     if (b) b.onclick = enableCompass;
     return;
   }
-  const { rel, head, cross } = windComponents(h.wind, h.dir, CMP.heading);
-  const yardsL = Math.abs(head) * 0.95, yardsC = Math.abs(cross) * 0.85;
-  const along = head > 1 ? `plays <b>+${Math.round(yardsL)} yds</b>`
-              : head < -1 ? `plays <b>−${Math.round(yardsL)} yds</b>` : 'no length change';
-  const side = Math.abs(cross) < 1 ? '' :
-    `, drifts <b>${Math.round(yardsC)} yds ${cross > 0 ? 'right' : 'left'}</b>`;
-  el.innerHTML = compassSVG(rel, CMP.heading, h.wind) +
-    `<div class="read">${labelRel(rel)} — ${along}${side}</div>`;
+  const yardsL = Math.abs(c.head) * 0.95, yardsC = Math.abs(c.cross) * 0.85;
+  const along = c.head > 1 ? `plays <b>+${Math.round(yardsL)} yds longer</b>`
+              : c.head < -1 ? `plays <b>${Math.round(yardsL)} yds shorter</b>` : 'no length change';
+  const side = Math.abs(c.cross) < 1 ? '' :
+    ` · drifts <b>${Math.round(yardsC)} yds ${c.cross > 0 ? 'right' : 'left'}</b>`;
+  el.innerHTML = compassSVG(c.rel, CMP.heading, h.wind) +
+    `<div class="read"><b>${labelRel(c.rel)}</b> — ${along}${side}</div>
+     <p class="sub">Gusting to ${Math.round(h.gust)} mph · mid-iron estimate · point the phone at your target</p>`;
 }
 
 function labelRel(rel){
@@ -631,6 +681,12 @@ async function enableCompass(){
     paintCompass();
   } catch { /* unsupported — button simply stays */ }
 }
+
+const sheetEl = document.getElementById('sheet');
+document.getElementById('dock').onclick = () => { sheetEl.hidden = false; paintCompass(); };
+document.getElementById('sheet-x').onclick = () => { sheetEl.hidden = true; };
+sheetEl.onclick = e => { if (e.target === sheetEl) sheetEl.hidden = true; };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') sheetEl.hidden = true; });
 
 /* ---------- appearance ---------- */
 function setTheme(mode){
