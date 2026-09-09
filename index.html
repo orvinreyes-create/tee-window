@@ -125,6 +125,8 @@ button{font:inherit;color:inherit;cursor:pointer}
   padding:11px 13px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
 .note-list .txt{font-size:14px;white-space:pre-wrap;word-break:break-word}
 .note-list .meta{font-size:11.5px;color:var(--muted);margin-top:4px}
+.note-list li.pin{border-color:var(--amber)}
+.note-list li.pin .meta{color:var(--amber);letter-spacing:.05em;text-transform:uppercase;font-size:10.5px}
 .note-list .pinned{border-color:rgba(232,163,61,.45)}
 .note-list .del{background:none;border:0;color:var(--muted);font-size:15px;padding:2px 4px}
 .gradient .cta{background:var(--moss-2);border:1px solid var(--line);border-radius:14px;
@@ -661,7 +663,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 
 
 /* ---------- green reader: AimPoint-style slope ---------- */
-const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null, dist:10 };
+const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null, dist:3 };  // dist in yards
 
 const pct = deg => Math.tan(deg * Math.PI/180) * 100;
 const fingers = p => Math.max(0, Math.min(5, Math.round(Math.abs(p))));
@@ -707,7 +709,7 @@ function paintGradient(){
   const f = fingers(side);
   const dir = Math.abs(side) < 0.3 ? null : (side > 0 ? 'LEFT' : 'RIGHT');   // aim to the high side
   const D = TILT.dist;
-  const plays = D * (ROLL_MU + up/100) / ROLL_MU;
+  const plays = D * (ROLL_MU + up/100) / ROLL_MU;   // D in yards
   const delta = plays - D;
 
   const aimBig = dir
@@ -715,10 +717,10 @@ function paintGradient(){
        <span class="big-dir ${side > 0 ? 'is-left' : 'is-right'}">${dir}</span>`
     : `<span class="big-dir is-flat">STRAIGHT</span>`;
 
-  const paceBig = Math.abs(delta) < 0.4
+  const paceBig = Math.abs(delta) < 0.15
     ? `<span class="big-dir is-flat">NORMAL PACE</span>`
     : `<span class="big-n">${delta > 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}</span>
-       <span class="big-u">ft of pace</span>
+       <span class="big-u">yds of pace</span>
        <span class="big-dir ${delta > 0 ? 'is-up' : 'is-down'}">${delta > 0 ? 'UPHILL' : 'DOWNHILL'}</span>`;
 
   el.innerHTML = `
@@ -727,23 +729,23 @@ function paintGradient(){
       <div class="g-tile"><span class="g-cap">Pace</span>${paceBig}</div>
     </div>
     <p class="g-line">Break <b>${Math.abs(side).toFixed(1)}%</b> · slope <b>${up >= 0 ? '+' : '−'}${Math.abs(up).toFixed(1)}%</b>
-      · a <b>${D} ft</b> putt rolls like <b>${plays.toFixed(1)} ft</b></p>
+      · a <b>${D} yd</b> putt rolls like <b>${plays.toFixed(1)} yds</b></p>
     ${levelSVG(up, side)}
     <div class="g-acts">
       <button id="g-hold">${TILT.hold ? 'Live' : 'Hold'}</button>
       <button id="g-zero">Zero</button>
       <button id="g-flip">Flip L/R</button>
-      <button id="g-dist">${D} ft</button>
+      <button id="g-dist">${D} yd</button>
     </div>
     <p class="g-sub">Fingers at arm's length, inside edge on the hole, aim the outer edge.
-    Express is calibrated for putts inside ~15 ft on medium greens; longer or faster putts break more.
+    Express is calibrated for putts inside about 5 yds on medium greens; longer or faster putts break more.
     Practice only — a device may not be used to read slope during a round.</p>`;
 
   document.getElementById('g-hold').onclick = () => { TILT.hold = TILT.hold ? null : { ...live }; paintGradient(); };
   document.getElementById('g-zero').onclick = () => { TILT.zb = TILT.beta; TILT.zg = TILT.gamma; TILT.hold = null; paintGradient(); };
   document.getElementById('g-flip').onclick = () => { TILT.flip = !TILT.flip; paintGradient(); };
   document.getElementById('g-dist').onclick = () => {
-    const steps = [5, 10, 15, 20, 30];
+    const steps = [2, 3, 5, 7, 10];   // yards
     TILT.dist = steps[(steps.indexOf(TILT.dist) + 1) % steps.length];
     paintGradient();
   };
