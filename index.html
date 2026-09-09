@@ -212,6 +212,9 @@ h2.sec{font-size:20px;margin:26px 0 12px}
 .msg{color:var(--muted);padding:26px 0}
 .err{color:var(--poor)}
 footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
+.awake{background:none;border:0;padding:6px 0;color:var(--muted);font-size:12px;
+  text-decoration:underline;text-underline-offset:3px}
+.awake[aria-pressed="false"]{opacity:.65}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -256,6 +259,7 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
 <div id="app"><p class="msg">Loading a course-side forecast…</p></div>
 
 <footer>
+  <button id="awake" class="awake" aria-pressed="true">Screen stays awake · tap to allow sleep</button><br>
   Scores weigh rain, wind and gusts, heat stress, storm risk and remaining daylight across your whole round — not just the hour you tee off.
   Forecast by Open-Meteo.
 </footer>
@@ -857,6 +861,41 @@ windToggle.onclick = () => {
   if (open){ gradPanel.hidden = true; gradToggle.setAttribute('aria-expanded','false'); }
   paintCompass();
 };
+
+/* ---------- keep the screen on while playing ---------- */
+const WAKE = { lock: null, want: true, supported: 'wakeLock' in navigator };
+
+async function acquireWake(){
+  if (!WAKE.supported || !WAKE.want || WAKE.lock || document.visibilityState !== 'visible') return;
+  try {
+    WAKE.lock = await navigator.wakeLock.request('screen');
+    WAKE.lock.addEventListener('release', () => { WAKE.lock = null; });
+  } catch { /* denied, low battery, or unsupported browser */ }
+}
+async function releaseWake(){
+  try { await WAKE.lock?.release(); } catch {}
+  WAKE.lock = null;
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') acquireWake();
+});
+['click','touchend'].forEach(ev =>
+  document.addEventListener(ev, () => acquireWake(), { once: true, passive: true }));
+
+const awakeBtn = document.getElementById('awake');
+if (!WAKE.supported){
+  awakeBtn.hidden = true;
+} else {
+  awakeBtn.onclick = () => {
+    WAKE.want = !WAKE.want;
+    awakeBtn.setAttribute('aria-pressed', String(WAKE.want));
+    awakeBtn.textContent = WAKE.want
+      ? 'Screen stays awake · tap to allow sleep'
+      : 'Screen may sleep · tap to keep it awake';
+    WAKE.want ? acquireWake() : releaseWake();
+  };
+}
+acquireWake();
 
 /* ---------- appearance ---------- */
 function setTheme(mode){
