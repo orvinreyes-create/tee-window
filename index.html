@@ -224,9 +224,15 @@ button{font:inherit;color:inherit;cursor:pointer}
 .holes button[aria-pressed="true"]{background:var(--chalk);color:var(--pine);border-color:transparent;font-weight:700}
 
 /* ── week ── */
-h2.sec{font-size:20px;margin:26px 0 12px}
+h2.sec{font-size:20px;margin:26px 0 6px}
+.week-hint{color:var(--muted);font-size:13px;margin:0 0 10px}
 .week{list-style:none;margin:0;padding:0}
-.week li{display:grid;grid-template-columns:62px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.backday{background:var(--moss);border:1px solid var(--line);color:var(--muted);
+  border-radius:999px;padding:7px 14px;font-size:13px;margin-bottom:14px}
+.week li{cursor:pointer}
+.week li[aria-current="true"]{opacity:.55}
+.week .go{color:var(--muted);font-size:15px;margin-left:2px}
+.week li{display:grid;grid-template-columns:62px 1fr auto auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
 .week .date{font-weight:400;color:var(--muted);font-size:12.5px}
 .tl-head{font-size:15px;margin:18px 0 10px;padding-top:14px;border-top:1px solid var(--line)}
 .timeline{list-style:none;margin:0;padding:0;display:grid;gap:8px}
@@ -311,7 +317,7 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
 <script>
 const $ = s => document.querySelector(s);
 const app = $('#app');
-let STATE = { holes: 18, lat: null, lon: null, label: '', data: null, sel: null, day: 0, gps: false };
+let STATE = { holes: 18, lat: null, lon: null, label: '', data: null, sel: null, day: 0, focus: null, gps: false };
 
 const ROUND_MIN  = { 18: 258, 9: 126 };   // 4h18 / 2h06 including warm-up walk
 const LAST_TEE   = { 18: 13.0, 9: 15.0 };  // club cut-off, decimal hours
@@ -410,7 +416,7 @@ async function load(lat, lon, label){
     if (!r.ok) throw new Error('Forecast service returned ' + r.status);
     const j = await r.json();
     STATE.data = parse(j);
-    STATE.day = 0; STATE.sel = null;
+    STATE.day = 0; STATE.sel = null; STATE.focus = null;
     render();
   } catch (e) {
     STATE.data = demoData(lat);
@@ -500,7 +506,12 @@ function analyseDay(di){
 /* ---------- render ---------- */
 function render(){
   let di = 0, a = analyseDay(0), note = '';
-  if (!a.slots.length){
+  if (STATE.focus != null && STATE.focus < STATE.data.days.length){
+    const f = analyseDay(STATE.focus);
+    if (f.slots.length){ di = STATE.focus; a = f; }
+    else STATE.focus = null;
+  }
+  if (!a.slots.length && di === 0){
     for (let i = 1; i < STATE.data.days.length; i++){
       const nx = analyseDay(i);
       if (nx.slots.length){ di = i; a = nx; break; }
@@ -528,6 +539,7 @@ function render(){
 
   CMP.hour = currentHour();
   app.innerHTML = note + `
+   ${di ? `<button class="backday" id="back-today">← Back to ${analyseDay(0).slots.length ? 'today' : 'the next playable day'}</button>` : ''}
    <div class="hero">
      <div class="place">${esc(STATE.label)} · ${STATE.holes} holes · ${dayName(di)}${di ? ' ' + a.d.date.toLocaleDateString([], {day:'numeric', month:'short'}) : ''}</div>
      <h1 class="verdict">${verdictWord(a.best.score)} at <em>${fmt(a.best.start)}</em></h1>
@@ -644,18 +656,28 @@ function weekHTML(focus){
     if (i === 0 || i === focus) return '';
     const a = analyseDay(i);
     if (!a.best) return '';
-    return `<li><span class="day">${d.date.toLocaleDateString([], {weekday:'short'})}<br>
+    return `<li data-day="${i}" role="button" tabindex="0"><span class="day">${d.date.toLocaleDateString([], {weekday:'short'})}<br>
       <span class="date">${d.date.toLocaleDateString([], {day:'numeric', month:'short'})}</span></span>
       <span class="when">${icon(conditionOf(a.best.slice).key, 15)} ${fmt(a.best.start)} — ${fmt(a.best.finish)}</span>
-      <span class="chip" style="background:${tone(a.best.score)}">${a.best.score}</span></li>`;
+      <span class="chip" style="background:${tone(a.best.score)}">${a.best.score}</span>
+      <span class="go">›</span></li>`;
   }).join('');
-  return `<h2 class="sec">Best window each day</h2><ul class="week">${rows}</ul>`;
+  return `<h2 class="sec">Best window each day</h2>
+    <p class="week-hint">Tap a day to see every tee slot and its conditions — useful when booking ahead.</p>
+    <ul class="week">${rows}</ul>`;
 }
 
 function bind(){
   paintCompass();
   document.querySelectorAll('.ribbon button, .alts .alt').forEach(b =>
     b.onclick = () => { STATE.sel = +b.dataset.h; render(); });
+  document.querySelectorAll('.week li[data-day]').forEach(li => {
+    const open = () => { STATE.focus = +li.dataset.day; STATE.sel = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    li.onclick = open;
+    li.onkeydown = e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); } };
+  });
+  const back = document.getElementById('back-today');
+  if (back) back.onclick = () => { STATE.focus = null; STATE.sel = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   document.querySelectorAll('.holes button').forEach(b =>
     b.onclick = () => { STATE.holes = +b.dataset.holes; STATE.sel = null; render(); });
 }
