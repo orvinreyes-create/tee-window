@@ -125,10 +125,24 @@ button{font:inherit;color:inherit;cursor:pointer}
   padding:11px 13px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
 .note-list .txt{font-size:14px;white-space:pre-wrap;word-break:break-word}
 .note-list .meta{font-size:11.5px;color:var(--muted);margin-top:4px}
+.note-list .pinned{border-color:rgba(232,163,61,.45)}
 .note-list .del{background:none;border:0;color:var(--muted);font-size:15px;padding:2px 4px}
 .gradient .cta{background:var(--moss-2);border:1px solid var(--line);border-radius:14px;
   padding:14px 16px;font-size:14px;color:var(--chalk);width:100%;line-height:1.4}
-.gradient svg{width:min(210px,56vw);height:min(210px,56vw);display:block;margin:0 auto}
+.gradient svg{width:min(168px,44vw);height:min(168px,44vw);display:block;margin:2px auto 0}
+.g-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.g-tile{background:var(--moss-2);border:1px solid var(--line);border-radius:16px;padding:12px 8px 14px;
+  display:flex;flex-direction:column;align-items:center;gap:1px}
+.g-cap{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.big-n{font-family:Fraunces,serif;font-size:40px;font-weight:800;line-height:1}
+.big-u{font-size:12px;color:var(--muted);margin-top:2px}
+.big-dir{font-size:19px;font-weight:700;letter-spacing:.06em;margin-top:5px}
+.big-dir.is-left{color:var(--breeze)}
+.big-dir.is-right{color:var(--amber)}
+.big-dir.is-up{color:var(--good)}
+.big-dir.is-down{color:var(--poor)}
+.big-dir.is-flat{font-size:16px;color:var(--muted);margin-top:14px}
+:root[data-theme="dark"] .big-dir.is-left{color:#6FB6D2}
 .g-call{font-family:Fraunces,serif;font-size:22px;font-weight:600;margin:12px 0 2px;letter-spacing:-.01em}
 .g-call b{color:var(--amber)}
 .g-line{font-size:14.5px;color:var(--muted);line-height:1.5}
@@ -647,7 +661,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 
 
 /* ---------- green reader: AimPoint-style slope ---------- */
-const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null };
+const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null, dist:10 };
 
 const pct = deg => Math.tan(deg * Math.PI/180) * 100;
 const fingers = p => Math.max(0, Math.min(5, Math.round(Math.abs(p))));
@@ -670,6 +684,8 @@ function levelSVG(up, side){
   </svg>`;
 }
 
+const ROLL_MU = 0.09;   // rolling resistance, ~stimp 10 green
+
 function paintGradient(){
   const panel = document.getElementById('grad-panel');
   const el = document.getElementById('gradient');
@@ -677,8 +693,8 @@ function paintGradient(){
 
   if (!TILT.on || TILT.beta == null){
     el.innerHTML = `<button class="cta" id="grad-on">Turn on slope reader</button>
-      <p class="g-sub">Lay the phone flat on the green between ball and hole, top edge pointing at the hole.
-      The reader gives the break in AimPoint percentages and converts it to fingers and paces.</p>`;
+      <p class="g-sub">Lay the phone flat on the green midway between ball and hole, top edge pointing at the hole.
+      Not for use during a round — Rule 4.3a(1) forbids measuring slope with a device.</p>`;
     const b = document.getElementById('grad-on');
     if (b) b.onclick = enableTilt;
     return;
@@ -687,33 +703,50 @@ function paintGradient(){
   const live = { b: TILT.beta - TILT.zb, g: TILT.gamma - TILT.zg };
   const src = TILT.hold || live;
   const up = pct(src.b);                                  // + uphill toward the hole
-  let side = pct(src.g) * (TILT.flip ? -1 : 1);           // + green falls to the right
-  const f = fingers(side), paces = Math.abs(up);
-  const dir = Math.abs(side) < 0.3 ? null : (side > 0 ? 'left' : 'right');
+  const side = pct(src.g) * (TILT.flip ? -1 : 1);          // + green falls to the right
+  const f = fingers(side);
+  const dir = Math.abs(side) < 0.3 ? null : (side > 0 ? 'LEFT' : 'RIGHT');   // aim to the high side
+  const D = TILT.dist;
+  const plays = D * (ROLL_MU + up/100) / ROLL_MU;
+  const delta = plays - D;
 
-  const call = dir
-    ? `Aim <b>${f} finger${f === 1 ? '' : 's'}</b> ${dir} of the hole`
-    : `<b>Straight putt</b> — no break to play`;
-  const paceLine = Math.abs(up) < 0.3
-    ? 'Flat — normal pace.'
-    : (up > 0
-       ? `Uphill <b>${up.toFixed(1)}%</b> — add about <b>${paces.toFixed(1)} pace${paces >= 1.5 ? 's' : ''}</b> of speed.`
-       : `Downhill <b>${Math.abs(up).toFixed(1)}%</b> — take off about <b>${paces.toFixed(1)} pace${paces >= 1.5 ? 's' : ''}</b>.`);
+  const aimBig = dir
+    ? `<span class="big-n">${f}</span><span class="big-u">finger${f === 1 ? '' : 's'}</span>
+       <span class="big-dir ${side > 0 ? 'is-left' : 'is-right'}">${dir}</span>`
+    : `<span class="big-dir is-flat">STRAIGHT</span>`;
 
-  el.innerHTML = levelSVG(up, side) +
-    `<p class="g-call">${call}</p>
-     <p class="g-line">Side slope <b>${Math.abs(side).toFixed(1)}%</b> falling ${dir ? (side > 0 ? 'right' : 'left') : 'level'} · ${paceLine}</p>
-     <div class="g-acts">
-       <button id="g-hold">${TILT.hold ? 'Live' : 'Hold'}</button>
-       <button id="g-zero">Zero</button>
-       <button id="g-flip">Flip L/R</button>
-     </div>
-     <p class="g-sub">Hold fingers at arm's length, aim the outside edge at the hole's high side.
-     Readings under 0.5% are inside the noise of any phone sensor.</p>`;
+  const paceBig = Math.abs(delta) < 0.4
+    ? `<span class="big-dir is-flat">NORMAL PACE</span>`
+    : `<span class="big-n">${delta > 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}</span>
+       <span class="big-u">ft of pace</span>
+       <span class="big-dir ${delta > 0 ? 'is-up' : 'is-down'}">${delta > 0 ? 'UPHILL' : 'DOWNHILL'}</span>`;
+
+  el.innerHTML = `
+    <div class="g-tiles">
+      <div class="g-tile"><span class="g-cap">Aim</span>${aimBig}</div>
+      <div class="g-tile"><span class="g-cap">Pace</span>${paceBig}</div>
+    </div>
+    <p class="g-line">Break <b>${Math.abs(side).toFixed(1)}%</b> · slope <b>${up >= 0 ? '+' : '−'}${Math.abs(up).toFixed(1)}%</b>
+      · a <b>${D} ft</b> putt rolls like <b>${plays.toFixed(1)} ft</b></p>
+    ${levelSVG(up, side)}
+    <div class="g-acts">
+      <button id="g-hold">${TILT.hold ? 'Live' : 'Hold'}</button>
+      <button id="g-zero">Zero</button>
+      <button id="g-flip">Flip L/R</button>
+      <button id="g-dist">${D} ft</button>
+    </div>
+    <p class="g-sub">Fingers at arm's length, inside edge on the hole, aim the outer edge.
+    Express is calibrated for putts inside ~15 ft on medium greens; longer or faster putts break more.
+    Practice only — a device may not be used to read slope during a round.</p>`;
 
   document.getElementById('g-hold').onclick = () => { TILT.hold = TILT.hold ? null : { ...live }; paintGradient(); };
   document.getElementById('g-zero').onclick = () => { TILT.zb = TILT.beta; TILT.zg = TILT.gamma; TILT.hold = null; paintGradient(); };
   document.getElementById('g-flip').onclick = () => { TILT.flip = !TILT.flip; paintGradient(); };
+  document.getElementById('g-dist').onclick = () => {
+    const steps = [5, 10, 15, 20, 30];
+    TILT.dist = steps[(steps.indexOf(TILT.dist) + 1) % steps.length];
+    paintGradient();
+  };
 }
 
 async function enableTilt(){
@@ -904,8 +937,18 @@ windToggle.onclick = () => {
 
 /* ---------- notes (saved on this device) ---------- */
 const NOTE_KEY = 'teewindow-notes';
+const SEED_KEY = 'teewindow-seeded';
+const SEED_NOTE = { t: 'Setup: good neutral grip and flush lie\nSwing: left shoulder over right toe, right shoulder over left toe',
+                    d: 'Swing thoughts', pin: true };
 let NOTES = [];
-try { NOTES = JSON.parse(localStorage.getItem(NOTE_KEY) || '[]'); } catch { NOTES = []; }
+try {
+  NOTES = JSON.parse(localStorage.getItem(NOTE_KEY) || '[]');
+  if (!localStorage.getItem(SEED_KEY)){        // first run on this device
+    NOTES.push({ ...SEED_NOTE });
+    localStorage.setItem(SEED_KEY, '1');
+    localStorage.setItem(NOTE_KEY, JSON.stringify(NOTES));
+  }
+} catch { NOTES = [{ ...SEED_NOTE }]; }
 
 function saveNotes(){
   try { localStorage.setItem(NOTE_KEY, JSON.stringify(NOTES)); return true; }
@@ -916,8 +959,9 @@ function paintNotes(){
   const list = document.getElementById('note-list');
   const state = document.getElementById('note-state');
   if (!list) return;
-  list.innerHTML = NOTES.map((n, i) => `<li>
-      <span><span class="txt">${esc(n.t)}</span><span class="meta">${esc(n.d)}</span></span>
+  const order = NOTES.map((n, i) => ({ n, i })).sort((a, b) => (a.n.pin ? 1 : 0) - (b.n.pin ? 1 : 0));
+  list.innerHTML = order.map(({ n, i }) => `<li${n.pin ? ' class="pinned"' : ''}>
+      <span><span class="txt">${esc(n.t)}</span><span class="meta">${n.pin ? '📌 ' : ''}${esc(n.d)}</span></span>
       <button class="del" data-i="${i}" aria-label="Delete note">✕</button>
     </li>`).join('');
   list.querySelectorAll('.del').forEach(b => b.onclick = () => {
