@@ -665,7 +665,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 
 
 /* ---------- green reader: AimPoint-style slope ---------- */
-const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null, green:1 };
+const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null, green:null };   // null = take it from the forecast
 
 const pct = deg => Math.tan(deg * Math.PI/180) * 100;
 const fingers = p => Math.max(0, Math.min(5, Math.round(Math.abs(p))));
@@ -690,7 +690,7 @@ function levelSVG(up, side){
 
 /* Effective rolling resistance by green speed. Extra roll needed on a slope is
    D*(mu+s)/mu, so the PERCENTAGE is D-independent: pace change = slope/mu. */
-const GREENS = [['Slow', 0.075], ['Medium', 0.062], ['Fast', 0.050]];
+const ROLL_MU = 0.062;   // typical green; slope % is distance-based, not stroke force
 
 function paintGradient(){
   const panel = document.getElementById('grad-panel');
@@ -712,7 +712,7 @@ function paintGradient(){
   const side = pct(src.g) * (TILT.flip ? -1 : 1);          // + green falls to the right
   const f = fingers(side);
   const dir = Math.abs(side) < 0.3 ? null : (side > 0 ? 'LEFT' : 'RIGHT');   // aim to the high side
-  const mu = GREENS[TILT.green][1];
+  const mu = ROLL_MU;
   let pace = (up / 100) / mu * 100;                       // % more or less pace
   pace = Math.max(-60, Math.min(120, pace));              // model breaks down at the extremes
 
@@ -724,34 +724,28 @@ function paintGradient(){
   const paceBig = Math.abs(pace) < 4
     ? `<span class="big-dir is-flat">NORMAL PACE</span><span class="big-ref">flat enough to ignore</span>`
     : `<span class="big-n">${pace > 0 ? '+' : '−'}${Math.abs(Math.round(pace))}<span class="big-pc">%</span></span>
-       <span class="big-u">of pace<br><span class="big-ref">vs a flat putt on these greens</span></span>
+       <span class="big-u">farther<br><span class="big-ref">play it as if the hole were<br>this much more distant</span></span>
        <span class="big-dir ${pace > 0 ? 'is-up' : 'is-down'}">${pace > 0 ? 'UPHILL' : 'DOWNHILL'}</span>`;
 
   el.innerHTML = `
     <div class="g-tiles">
       <div class="g-tile"><span class="g-cap">Aim</span>${aimBig}</div>
-      <div class="g-tile"><span class="g-cap">Pace</span>${paceBig}</div>
+      <div class="g-tile"><span class="g-cap">Distance</span>${paceBig}</div>
     </div>
-    <p class="g-line">Break <b>${Math.abs(side).toFixed(1)}%</b> · slope <b>${up >= 0 ? '+' : '−'}${Math.abs(up).toFixed(1)}%</b>
-      · play the distance you read <b>×${(1 + pace/100).toFixed(2)}</b> — a 4-pace putt becomes <b>${(4 * (1 + pace/100)).toFixed(1)} paces</b></p>
+    <p class="g-line">Break <b>${Math.abs(side).toFixed(1)}%</b> · slope <b>${up >= 0 ? '+' : '−'}${Math.abs(up).toFixed(1)}%</b></p>
     ${levelSVG(up, side)}
     <div class="g-acts">
       <button id="g-hold">${TILT.hold ? 'Live' : 'Hold'}</button>
       <button id="g-zero">Zero</button>
       <button id="g-flip">Flip L/R</button>
-      <button id="g-dist">${GREENS[TILT.green][0]} greens</button>
-    </div>
+      </div>
     <p class="g-sub">Fingers at arm's length, inside edge on the hole, aim the outer edge.
-    Pace % holds at any putt length; break fingers are calibrated for putts inside about 5 yds.
+    The distance figure holds at any putt length; your stroke for that distance stays your own feel. Break fingers are calibrated for putts inside about 5 yds.
     Practice only — a device may not be used to read slope during a round.</p>`;
 
   document.getElementById('g-hold').onclick = () => { TILT.hold = TILT.hold ? null : { ...live }; paintGradient(); };
   document.getElementById('g-zero').onclick = () => { TILT.zb = TILT.beta; TILT.zg = TILT.gamma; TILT.hold = null; paintGradient(); };
   document.getElementById('g-flip').onclick = () => { TILT.flip = !TILT.flip; paintGradient(); };
-  document.getElementById('g-dist').onclick = () => {
-    TILT.green = (TILT.green + 1) % GREENS.length;
-    paintGradient();
-  };
 }
 
 async function enableTilt(){
