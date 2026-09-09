@@ -138,6 +138,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .g-cap{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
 .big-n{font-family:Fraunces,serif;font-size:40px;font-weight:800;line-height:1}
 .big-u{font-size:12px;color:var(--muted);margin-top:2px}
+.big-pc{font-size:22px;margin-left:1px}
 .big-dir{font-size:19px;font-weight:700;letter-spacing:.06em;margin-top:5px}
 .big-dir.is-left{color:var(--breeze)}
 .big-dir.is-right{color:var(--amber)}
@@ -663,7 +664,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 
 
 /* ---------- green reader: AimPoint-style slope ---------- */
-const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null, dist:3 };  // dist in yards
+const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null, green:1 };
 
 const pct = deg => Math.tan(deg * Math.PI/180) * 100;
 const fingers = p => Math.max(0, Math.min(5, Math.round(Math.abs(p))));
@@ -686,7 +687,9 @@ function levelSVG(up, side){
   </svg>`;
 }
 
-const ROLL_MU = 0.09;   // rolling resistance, ~stimp 10 green
+/* Effective rolling resistance by green speed. Extra roll needed on a slope is
+   D*(mu+s)/mu, so the PERCENTAGE is D-independent: pace change = slope/mu. */
+const GREENS = [['Slow', 0.075], ['Medium', 0.062], ['Fast', 0.050]];
 
 function paintGradient(){
   const panel = document.getElementById('grad-panel');
@@ -708,20 +711,20 @@ function paintGradient(){
   const side = pct(src.g) * (TILT.flip ? -1 : 1);          // + green falls to the right
   const f = fingers(side);
   const dir = Math.abs(side) < 0.3 ? null : (side > 0 ? 'LEFT' : 'RIGHT');   // aim to the high side
-  const D = TILT.dist;
-  const plays = D * (ROLL_MU + up/100) / ROLL_MU;   // D in yards
-  const delta = plays - D;
+  const mu = GREENS[TILT.green][1];
+  let pace = (up / 100) / mu * 100;                       // % more or less pace
+  pace = Math.max(-60, Math.min(120, pace));              // model breaks down at the extremes
 
   const aimBig = dir
     ? `<span class="big-n">${f}</span><span class="big-u">finger${f === 1 ? '' : 's'}</span>
        <span class="big-dir ${side > 0 ? 'is-left' : 'is-right'}">${dir}</span>`
     : `<span class="big-dir is-flat">STRAIGHT</span>`;
 
-  const paceBig = Math.abs(delta) < 0.15
+  const paceBig = Math.abs(pace) < 4
     ? `<span class="big-dir is-flat">NORMAL PACE</span>`
-    : `<span class="big-n">${delta > 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}</span>
-       <span class="big-u">yds of pace</span>
-       <span class="big-dir ${delta > 0 ? 'is-up' : 'is-down'}">${delta > 0 ? 'UPHILL' : 'DOWNHILL'}</span>`;
+    : `<span class="big-n">${pace > 0 ? '+' : '−'}${Math.abs(Math.round(pace))}<span class="big-pc">%</span></span>
+       <span class="big-u">of pace</span>
+       <span class="big-dir ${pace > 0 ? 'is-up' : 'is-down'}">${pace > 0 ? 'UPHILL' : 'DOWNHILL'}</span>`;
 
   el.innerHTML = `
     <div class="g-tiles">
@@ -729,24 +732,23 @@ function paintGradient(){
       <div class="g-tile"><span class="g-cap">Pace</span>${paceBig}</div>
     </div>
     <p class="g-line">Break <b>${Math.abs(side).toFixed(1)}%</b> · slope <b>${up >= 0 ? '+' : '−'}${Math.abs(up).toFixed(1)}%</b>
-      · a <b>${D} yd</b> putt rolls like <b>${plays.toFixed(1)} yds</b></p>
+      · hit it like a putt <b>${Math.abs(Math.round(pace))}% ${pace > 0 ? 'longer' : 'shorter'}</b> than it looks</p>
     ${levelSVG(up, side)}
     <div class="g-acts">
       <button id="g-hold">${TILT.hold ? 'Live' : 'Hold'}</button>
       <button id="g-zero">Zero</button>
       <button id="g-flip">Flip L/R</button>
-      <button id="g-dist">${D} yd</button>
+      <button id="g-dist">${GREENS[TILT.green][0]} greens</button>
     </div>
     <p class="g-sub">Fingers at arm's length, inside edge on the hole, aim the outer edge.
-    Express is calibrated for putts inside about 5 yds on medium greens; longer or faster putts break more.
+    Pace % holds at any putt length; break fingers are calibrated for putts inside about 5 yds.
     Practice only — a device may not be used to read slope during a round.</p>`;
 
   document.getElementById('g-hold').onclick = () => { TILT.hold = TILT.hold ? null : { ...live }; paintGradient(); };
   document.getElementById('g-zero').onclick = () => { TILT.zb = TILT.beta; TILT.zg = TILT.gamma; TILT.hold = null; paintGradient(); };
   document.getElementById('g-flip').onclick = () => { TILT.flip = !TILT.flip; paintGradient(); };
   document.getElementById('g-dist').onclick = () => {
-    const steps = [2, 3, 5, 7, 10];   // yards
-    TILT.dist = steps[(steps.indexOf(TILT.dist) + 1) % steps.length];
+    TILT.green = (TILT.green + 1) % GREENS.length;
     paintGradient();
   };
 }
