@@ -76,14 +76,14 @@ body{
   font-family:Karla,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:16px; line-height:1.5;
   -webkit-font-smoothing:antialiased;
-  padding:20px 18px 64px;
+  padding:calc(20px + env(safe-area-inset-top)) 18px 64px;
   max-width:560px; margin:0 auto;
 }
 h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0;letter-spacing:-.01em}
 button{font:inherit;color:inherit;cursor:pointer}
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:6px}
 
-.topline{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.topline{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px 0 18px}
 .wordmark{font-family:Fraunces,serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
 .theme{display:flex;background:var(--moss);border:1px solid var(--line);border-radius:999px;padding:3px}
 .theme button{background:none;border:0;padding:5px 11px;border-radius:999px;font-size:13px;color:var(--muted)}
@@ -103,12 +103,29 @@ button{font:inherit;color:inherit;cursor:pointer}
 .finder input::-webkit-search-cancel-button{display:none}
 .finder-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
 .finder button.locate{width:100%}
-.tool-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tool-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tool-row button{padding:11px 6px;font-size:13.5px;gap:6px}
+.note-btn{background:var(--moss);border:1px solid var(--line);color:var(--chalk);
+  border-radius:14px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.note-btn[aria-expanded="true"]{background:var(--moss-2);border-color:var(--amber)}
 .grad-btn{background:var(--turf);border:1px solid transparent;color:var(--on-breeze);
   padding:12px 18px;border-radius:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px}
 .grad-btn[aria-expanded="true"]{background:var(--turf-on)}
 .wind-btn{justify-content:center}
 .gradient{text-align:center}
+#note-input{width:100%;background:var(--moss-2);border:1px solid var(--line);color:var(--chalk);
+  border-radius:14px;padding:13px 14px;font:inherit;font-size:16px;resize:vertical;min-height:82px}
+#note-input::placeholder{color:var(--muted)}
+.note-acts{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.note-state{font-size:12.5px;color:var(--muted)}
+.note-save{background:var(--amber);color:var(--on-amber);border:0;border-radius:12px;
+  padding:10px 16px;font-weight:700;font-size:14px}
+.note-list{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+.note-list li{background:var(--moss-2);border:1px solid var(--line);border-radius:12px;
+  padding:11px 13px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
+.note-list .txt{font-size:14px;white-space:pre-wrap;word-break:break-word}
+.note-list .meta{font-size:11.5px;color:var(--muted);margin-top:4px}
+.note-list .del{background:none;border:0;color:var(--muted);font-size:15px;padding:2px 4px}
 .gradient .cta{background:var(--moss-2);border:1px solid var(--line);border-radius:14px;
   padding:14px 16px;font-size:14px;color:var(--chalk);width:100%;line-height:1.4}
 .gradient svg{width:min(210px,56vw);height:min(210px,56vw);display:block;margin:0 auto}
@@ -245,13 +262,22 @@ footer{color:var(--muted);font-size:12px;margin-top:32px;line-height:1.6}
 <div class="tools">
   <div class="tool-row">
     <button id="wind-toggle" class="wind-btn" aria-expanded="false" aria-controls="wind-panel" aria-label="Wind direction">Wind</button>
-    <button id="grad-toggle" class="grad-btn" aria-expanded="false" aria-controls="grad-panel"><svg class="ic" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 21.4V2.6"/><path d="M6.4 3.8l11.4 3.6-11.4 3.7z"/><path d="M3.6 21.4h6"/></svg>Gradient</button>
+    <button id="grad-toggle" class="grad-btn" aria-expanded="false" aria-controls="grad-panel" aria-label="Putting slope reader"><svg class="ic" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 21.4V2.6"/><path d="M6.4 3.8l11.4 3.6-11.4 3.7z"/><path d="M3.6 21.4h6"/></svg>Putting</button>
+    <button id="note-toggle" class="note-btn" aria-expanded="false" aria-controls="note-panel"><svg class="ic" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.6h9.5L19 8.1v12.3H5z"/><path d="M14.2 3.8v4.6h4.6"/><path d="M8.2 12.4h7.4M8.2 16h5"/></svg>Notes</button>
   </div>
   <section id="wind-panel" class="wind-panel" hidden>
     <div id="compass" class="compass"></div>
   </section>
   <section id="grad-panel" class="wind-panel" hidden>
     <div id="gradient" class="gradient"></div>
+  </section>
+  <section id="note-panel" class="wind-panel" hidden>
+    <textarea id="note-input" rows="3" placeholder="Swing thought, club note, course read…"></textarea>
+    <div class="note-acts">
+      <span id="note-state" class="note-state"></span>
+      <button id="note-save" class="note-save">Save note</button>
+    </div>
+    <ul id="note-list" class="note-list"></ul>
   </section>
 </div>
 <p id="banner" hidden></p>
@@ -575,7 +601,7 @@ function advice(w, mid){
   if (w.agg.storm > 20) bits.push('Thunder in the window — know your shelter.');
   if (avg(w.slice,'pop') > 45) bits.push('Rain gloves and a towel.');
   if (avg(w.slice,'feels') > 38) bits.push('Felt heat above 38°C — two litres of water and a wet towel.');
-  if (Math.max(...w.slice.map(h=>h.gust)) > 20) bits.push('Gusts over 20 mph: club up, swing at 80%.');
+  if (Math.max(...w.slice.map(h=>h.gust)) > 20) bits.push('Gusts over 20 mph — a smoother, shorter swing tends to hold its line better.');
   if (carry > 0 && bits.length < 3) bits.push('Warm air adds about ' + carry + ' yards of driver carry.');
   if (!bits.length) bits.push('Clean conditions the whole way round. No club adjustment needed.');
   return bits.slice(0,3).join(' ');
@@ -784,9 +810,9 @@ function paintCompass(){
     return;
   }
   const yardsL = Math.abs(c.head) * 0.95, yardsC = Math.abs(c.cross) * 0.85;
-  const along = c.head > 1 ? `club <b>up</b> — a 150 yd shot plays like <b>${Math.round(150 + yardsL)} yds</b>`
-              : c.head < -1 ? `club <b>down</b> — a 150 yd shot plays like <b>${Math.round(150 - yardsL)} yds</b>`
-              : 'no change to your number';
+  const along = c.head > 1 ? `a 150 yd shot is playing like <b>${Math.round(150 + yardsL)} yds</b> — consider a little more club`
+              : c.head < -1 ? `a 150 yd shot is playing like <b>${Math.round(150 - yardsL)} yds</b> — consider a little less club`
+              : 'your normal number should hold';
   const side = Math.abs(c.cross) < 1 ? '' :
     ` · drifts <b>${Math.round(yardsC)} yds ${c.cross > 0 ? 'right' : 'left'}</b>`;
   el.innerHTML = compassSVG(c.rel, CMP.heading, h.wind) +
@@ -838,14 +864,28 @@ async function enableCompass(){
 
 const windToggle = document.getElementById('wind-toggle');
 const windPanel = document.getElementById('wind-panel');
+const noteToggle = document.getElementById('note-toggle');
+const notePanel = document.getElementById('note-panel');
 const gradToggle = document.getElementById('grad-toggle');
 const gradPanel = document.getElementById('grad-panel');
+function closeAll(){
+  [[windPanel, windToggle], [gradPanel, gradToggle], [notePanel, noteToggle]].forEach(([p, b]) => {
+    p.hidden = true; b.setAttribute('aria-expanded','false');
+  });
+}
 gradToggle.onclick = () => {
   const open = gradPanel.hidden;
+  closeAll();
   gradPanel.hidden = !open;
   gradToggle.setAttribute('aria-expanded', String(open));
-  if (open){ windPanel.hidden = true; windToggle.setAttribute('aria-expanded','false'); }
   paintGradient();
+};
+noteToggle.onclick = () => {
+  const open = notePanel.hidden;
+  closeAll();
+  notePanel.hidden = !open;
+  noteToggle.setAttribute('aria-expanded', String(open));
+  if (open) document.getElementById('note-input').focus();
 };
 
 const clearBtn = document.getElementById('clear');
@@ -856,11 +896,55 @@ clearBtn.onclick = () => {
 
 windToggle.onclick = () => {
   const open = windPanel.hidden;
+  closeAll();
   windPanel.hidden = !open;
   windToggle.setAttribute('aria-expanded', String(open));
-  if (open){ gradPanel.hidden = true; gradToggle.setAttribute('aria-expanded','false'); }
   paintCompass();
 };
+
+/* ---------- notes (saved on this device) ---------- */
+const NOTE_KEY = 'teewindow-notes';
+let NOTES = [];
+try { NOTES = JSON.parse(localStorage.getItem(NOTE_KEY) || '[]'); } catch { NOTES = []; }
+
+function saveNotes(){
+  try { localStorage.setItem(NOTE_KEY, JSON.stringify(NOTES)); return true; }
+  catch { return false; }
+}
+
+function paintNotes(){
+  const list = document.getElementById('note-list');
+  const state = document.getElementById('note-state');
+  if (!list) return;
+  list.innerHTML = NOTES.map((n, i) => `<li>
+      <span><span class="txt">${esc(n.t)}</span><span class="meta">${esc(n.d)}</span></span>
+      <button class="del" data-i="${i}" aria-label="Delete note">✕</button>
+    </li>`).join('');
+  list.querySelectorAll('.del').forEach(b => b.onclick = () => {
+    NOTES.splice(+b.dataset.i, 1); saveNotes(); paintNotes();
+  });
+  state.textContent = NOTES.length
+    ? NOTES.length + (NOTES.length === 1 ? ' note saved' : ' notes saved')
+    : 'Saved on this device only';
+}
+
+function initNotes(){
+  const input = document.getElementById('note-input');
+  const save = document.getElementById('note-save');
+  save.onclick = () => {
+    const t = input.value.trim();
+    if (!t) return;
+    NOTES.unshift({ t, d: new Date().toLocaleString([], { day:'numeric', month:'short', hour:'numeric', minute:'2-digit' }) });
+    const ok = saveNotes();
+    input.value = '';
+    paintNotes();
+    if (!ok) document.getElementById('note-state').textContent = 'Could not save — storage is blocked here';
+  };
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save.click();
+  });
+  paintNotes();
+}
 
 /* ---------- keep the screen on while playing ---------- */
 const WAKE = { lock: null, want: true, supported: 'wakeLock' in navigator };
@@ -923,48 +1007,53 @@ const COURSES = [
   ['Camp Aguinaldo Golf Club, Quezon City', 14.6153, 121.0640],
   ['Villamor Golf Club, Pasay', 14.5153, 121.0192],
   ['Navy Golf Club, Taguig', 14.5240, 121.0430],
-  ['Intramuros Golf Course, Manila', 14.5900, 120.9760],
-  ['Club Intramuros / Bayview, Manila', 14.5880, 120.9770],
-  ['Rizal Golf Club, Taguig', 14.5090, 121.0480]
+  ['Club Intramuros Golf, Manila', 14.5890, 120.9765]
  ]],
  ['Rizal & east', [
-  ['Riverbend Golf, Antipolo', 14.6270, 121.1500],
+  ['Riverbend Golf & CC, Antipolo', 14.6270, 121.1500],
   ['Forest Hills Golf & CC, Antipolo', 14.6390, 121.1670],
   ['Sunvalley Golf & CC, Antipolo', 14.6100, 121.1370],
   ['Eastridge Golf Club, Binangonan', 14.4700, 121.1900],
-  ['Timberland Heights, San Mateo', 14.7250, 121.1030],
-  ['Southlinks Golf, Taytay', 14.5620, 121.1350]
+  ['Timberland Heights Golf, San Mateo', 14.7250, 121.1030]
  ]],
  ['Cavite', [
   ['Manila Southwoods, Carmona', 14.3122, 121.0533],
+  ['South Forbes Golf City, Silang', 14.2560, 121.0180],
   ['Riviera Golf Club, Silang', 14.2264, 120.9958],
   ['Eagle Ridge Golf & CC, Gen. Trias', 14.3403, 120.9231],
-  ['Orchard Golf & CC, Dasmariñas', 14.3170, 120.9550],
+  ['The Orchard Golf & CC, Dasmariñas', 14.3170, 120.9550],
   ['Sherwood Hills Golf, Trece Martires', 14.2830, 120.8620],
   ['Royale Tagaytay Golf, Alfonso', 14.1250, 120.8570],
-  ['Tagaytay Highlands, Talisay side', 14.1330, 121.0080],
-  ['Tagaytay Midlands, Talisay', 14.1200, 120.9900],
-  ['Splendido Taal Golf, Laurel', 14.1180, 120.9490],
   ['Puerto Azul Golf, Ternate', 14.2450, 120.6400]
  ]],
- ['Laguna & Batangas', [
+ ['Tagaytay & Taal ridge', [
+  ['Tagaytay Highlands Golf, Talisay', 14.1330, 121.0080],
+  ['Tagaytay Midlands Golf, Talisay', 14.1200, 120.9900],
+  ['Splendido Taal Golf, Laurel', 14.1180, 120.9490]
+ ]],
+ ['Laguna', [
   ['Sta. Elena Golf Club, Cabuyao', 14.2447, 121.1264],
   ['The Country Club, Sta. Rosa', 14.2650, 121.0680],
   ['Canlubang Golf & CC, Calamba', 14.2000, 121.1000],
-  ['Caliraya Springs Golf, Lumban', 14.2800, 121.5300],
+  ['Ayala Greenfield Golf, Calamba', 14.1730, 121.1170],
+  ['Caliraya Springs Golf, Lumban', 14.2800, 121.5300]
+ ]],
+ ['Batangas', [
   ['Mount Malarayat Golf, Lipa', 13.9700, 121.1900],
   ['Summit Point Golf, Lipa', 13.9450, 121.1500],
-  ['Calatagan Golf Club, Calatagan', 13.8330, 120.6300],
-  ['Anvaya Cove-style links, Nasugbu', 14.0700, 120.6300],
-  ['Batulao Golf, Nasugbu', 14.0430, 120.7500]
+  ['Evercrest Golf Club, Nasugbu', 14.0980, 120.6560],
+  ['Calatagan Golf Club, Calatagan', 13.8330, 120.6300]
  ]],
- ['Pampanga, Clark & Bataan', [
+ ['Pampanga, Clark & Tarlac', [
   ['Mimosa Plus Golf, Clark', 15.1800, 120.5340],
-  ['Luisita Golf & CC, Tarlac', 15.4700, 120.5900],
-  ['Pradera Verde Golf, Lubao', 14.9540, 120.6180],
-  ['Sandy Valley Golf, Porac', 15.0900, 120.5200],
+  ['Fontana Golf Club, Clark', 15.1620, 120.5300],
   ['Clark Sun Valley Golf, Angeles', 15.1600, 120.5600],
-  ['Anvaya Cove Golf, Morong Bataan', 14.6800, 120.2700],
+  ['Sandy Valley Golf, Porac', 15.0900, 120.5200],
+  ['Pradera Verde Golf, Lubao', 14.9540, 120.6180],
+  ['Luisita Golf & CC, Tarlac', 15.4700, 120.5900]
+ ]],
+ ['Bataan & Zambales', [
+  ['Anvaya Cove Golf, Morong', 14.6800, 120.2700],
   ['Bataan Golf & CC, Balanga', 14.6700, 120.5300],
   ['Subic Bay Golf, SBFZ', 14.7900, 120.2700]
  ]],
@@ -973,28 +1062,23 @@ const COURSES = [
   ['Baguio Country Club, Baguio', 16.4060, 120.6110],
   ['Pinewoods Golf, La Trinidad', 16.4550, 120.5900],
   ['Fort Ilocandia Golf, Laoag', 18.1550, 120.5300],
-  ['Villa Sandra Golf, Ilocos Sur', 17.5700, 120.3900],
-  ['Nueva Ecija Golf, Cabanatuan', 15.4900, 120.9600],
-  ['Villa Escudero-style course, Quezon', 14.0700, 121.4300]
+  ['Nueva Ecija Golf, Cabanatuan', 15.4900, 120.9600]
  ]],
- ['Bicol & south Luzon', [
+ ['Bicol', [
   ['Legazpi Golf, Albay', 13.1600, 123.7400],
   ['Naga Golf Club, Camarines Sur', 13.6300, 123.1800]
  ]],
- ['Cebu & Bohol', [
+ ['Cebu', [
   ['Cebu Country Club, Cebu City', 10.3300, 123.9060],
   ['Alta Vista Golf & CC, Cebu City', 10.2830, 123.8580],
   ['Club Filipino de Cebu, Danao', 10.5200, 124.0200],
-  ['Mactan Island Golf, Lapu-Lapu', 10.3050, 123.9800],
-  ['Aparilla / Sherwood Hills Cebu, Naga', 10.2100, 123.7600],
-  ['Bohol Golf, Panglao', 9.5700, 123.7500]
+  ['Mactan Island Golf, Lapu-Lapu', 10.3050, 123.9800]
  ]],
  ['Negros, Panay & Boracay', [
   ['Bacolod Golf & CC, Bacolod', 10.6300, 122.9700],
   ['Marapara Golf, Bacolod', 10.6700, 122.9500],
   ['Iloilo Golf & CC, Sta. Barbara', 10.8200, 122.5300],
-  ['Fairways & Bluewater, Boracay', 11.9800, 121.9300],
-  ['Sicogon Golf, Iloilo', 11.4600, 123.2300]
+  ['Fairways & Bluewater, Boracay', 11.9800, 121.9300]
  ]],
  ['Palawan & Mindoro', [
   ['Palawan Golf, Puerto Princesa', 9.7800, 118.7400],
@@ -1006,7 +1090,6 @@ const COURSES = [
   ['South Pacific Golf, Davao', 7.0500, 125.5200],
   ['Del Monte Golf, Bukidnon', 8.3200, 124.9000],
   ['Pueblo de Oro Golf, Cagayan de Oro', 8.4800, 124.6300],
-  ['Kalayaan Golf, Iligan', 8.2300, 124.2400],
   ['Zamboanga Golf, Zamboanga City', 6.9200, 122.0800],
   ['General Santos Golf, GenSan', 6.1100, 125.1700],
   ['Marbel Golf, Koronadal', 6.5000, 124.8400]
@@ -1120,6 +1203,8 @@ function useGPS(auto){
   );
 }
 $('#gps').onclick = () => useGPS(false);
+
+initNotes();
 
 /* first paint: Metro Manila, then quietly ask for the real location */
 load(14.5800, 121.0000, 'Metro Manila');
