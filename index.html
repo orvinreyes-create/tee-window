@@ -139,6 +139,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .big-n{font-family:Fraunces,serif;font-size:40px;font-weight:800;line-height:1}
 .big-u{font-size:12px;color:var(--muted);margin-top:2px}
 .big-pc{font-size:22px;margin-left:1px}
+.big-ref{font-size:10.5px;color:var(--muted);opacity:.85;display:block;margin-top:3px;line-height:1.3}
 .big-dir{font-size:19px;font-weight:700;letter-spacing:.06em;margin-top:5px}
 .big-dir.is-left{color:var(--breeze)}
 .big-dir.is-right{color:var(--amber)}
@@ -721,9 +722,9 @@ function paintGradient(){
     : `<span class="big-dir is-flat">STRAIGHT</span>`;
 
   const paceBig = Math.abs(pace) < 4
-    ? `<span class="big-dir is-flat">NORMAL PACE</span>`
+    ? `<span class="big-dir is-flat">NORMAL PACE</span><span class="big-ref">flat enough to ignore</span>`
     : `<span class="big-n">${pace > 0 ? '+' : '−'}${Math.abs(Math.round(pace))}<span class="big-pc">%</span></span>
-       <span class="big-u">of pace</span>
+       <span class="big-u">of pace<br><span class="big-ref">vs a flat putt on these greens</span></span>
        <span class="big-dir ${pace > 0 ? 'is-up' : 'is-down'}">${pace > 0 ? 'UPHILL' : 'DOWNHILL'}</span>`;
 
   el.innerHTML = `
@@ -732,7 +733,7 @@ function paintGradient(){
       <div class="g-tile"><span class="g-cap">Pace</span>${paceBig}</div>
     </div>
     <p class="g-line">Break <b>${Math.abs(side).toFixed(1)}%</b> · slope <b>${up >= 0 ? '+' : '−'}${Math.abs(up).toFixed(1)}%</b>
-      · hit it like a putt <b>${Math.abs(Math.round(pace))}% ${pace > 0 ? 'longer' : 'shorter'}</b> than it looks</p>
+      · play the distance you read <b>×${(1 + pace/100).toFixed(2)}</b> — a 4-pace putt becomes <b>${(4 * (1 + pace/100)).toFixed(1)} paces</b></p>
     ${levelSVG(up, side)}
     <div class="g-acts">
       <button id="g-hold">${TILT.hold ? 'Live' : 'Hold'}</button>
