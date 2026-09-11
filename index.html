@@ -149,6 +149,18 @@ button{font:inherit;color:inherit;cursor:pointer}
 :root[data-theme="dark"] .big-dir.is-left{color:#6FB6D2}
 .g-call{font-family:Fraunces,serif;font-size:22px;font-weight:600;margin:12px 0 2px;letter-spacing:-.01em}
 .g-call b{color:var(--amber)}
+.putt-calc{background:var(--moss-2);border:1px solid var(--line);border-radius:16px;
+  padding:12px 12px 14px;margin:0 0 12px;text-align:center}
+.putt-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px}
+.putt-row button{width:42px;height:42px;border-radius:12px;background:var(--moss);
+  border:1px solid var(--line);color:var(--chalk);font-size:20px;line-height:1}
+.putt-row input{width:82px;text-align:center;background:var(--moss);border:1px solid var(--line);
+  color:var(--chalk);border-radius:12px;padding:9px 6px;font-size:20px;font-weight:700;
+  font-family:Fraunces,serif;-moz-appearance:textfield}
+.putt-row input::-webkit-outer-spin-button,.putt-row input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.putt-unit{font-size:13px;color:var(--muted)}
+.putt-out{margin:10px 0 0;font-size:15px;color:var(--muted)}
+.putt-out b{font-family:Fraunces,serif;font-size:26px;font-weight:800;color:var(--amber);vertical-align:-2px}
 .g-line{font-size:14.5px;color:var(--muted);line-height:1.5}
 .g-line b{color:var(--chalk);font-weight:700}
 .g-acts{display:flex;gap:8px;justify-content:center;margin-top:14px}
@@ -687,7 +699,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 
 
 /* ---------- green reader: AimPoint-style slope ---------- */
-const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null, green:null };   // null = take it from the forecast
+const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null, putt:4 };   // putt = your read, in paces/yards
 
 const pct = deg => Math.tan(deg * Math.PI/180) * 100;
 const fingers = p => Math.max(0, Math.min(5, Math.round(Math.abs(p))));
@@ -754,6 +766,16 @@ function paintGradient(){
       <div class="g-tile"><span class="g-cap">Aim</span>${aimBig}</div>
       <div class="g-tile"><span class="g-cap">Distance</span>${paceBig}</div>
     </div>
+    <div class="putt-calc">
+      <span class="g-cap">Your read</span>
+      <div class="putt-row">
+        <button id="p-down" aria-label="Less">−</button>
+        <input id="p-dist" type="number" inputmode="decimal" step="0.5" min="0.5" max="40" value="${TILT.putt}">
+        <span class="putt-unit">paces</span>
+        <button id="p-up" aria-label="More">+</button>
+      </div>
+      <p class="putt-out">play it as <b>${(TILT.putt * (1 + pace/100)).toFixed(1)}</b> paces</p>
+    </div>
     <p class="g-line">Break <b>${Math.abs(side).toFixed(1)}%</b> · slope <b>${up >= 0 ? '+' : '−'}${Math.abs(up).toFixed(1)}%</b></p>
     ${levelSVG(up, side)}
     <div class="g-acts">
@@ -768,6 +790,12 @@ function paintGradient(){
   document.getElementById('g-hold').onclick = () => { TILT.hold = TILT.hold ? null : { ...live }; paintGradient(); };
   document.getElementById('g-zero').onclick = () => { TILT.zb = TILT.beta; TILT.zg = TILT.gamma; TILT.hold = null; paintGradient(); };
   document.getElementById('g-flip').onclick = () => { TILT.flip = !TILT.flip; paintGradient(); };
+
+  const pd = document.getElementById('p-dist');
+  const setPutt = v => { TILT.putt = Math.min(40, Math.max(0.5, Math.round(v * 2) / 2)); paintGradient(); };
+  document.getElementById('p-up').onclick = () => setPutt(TILT.putt + 0.5);
+  document.getElementById('p-down').onclick = () => setPutt(TILT.putt - 0.5);
+  pd.onchange = () => setPutt(parseFloat(pd.value) || TILT.putt);
 }
 
 async function enableTilt(){
