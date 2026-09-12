@@ -149,6 +149,17 @@ button{font:inherit;color:inherit;cursor:pointer}
 :root[data-theme="dark"] .big-dir.is-left{color:#6FB6D2}
 .g-call{font-family:Fraunces,serif;font-size:22px;font-weight:600;margin:12px 0 2px;letter-spacing:-.01em}
 .g-call b{color:var(--amber)}
+.dial-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.dial-row button{width:44px;height:44px;flex:0 0 44px;border-radius:13px;background:var(--moss);
+  border:1px solid var(--line);color:var(--chalk);font-size:21px;line-height:1}
+.dial-row input[type=range]{flex:1;min-width:0;-webkit-appearance:none;appearance:none;height:34px;background:none}
+.dial-row input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:var(--track)}
+.dial-row input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:var(--track)}
+.dial-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;
+  background:var(--amber);border:2px solid var(--moss);margin-top:-10px}
+.dial-row input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:var(--amber);border:2px solid var(--moss)}
+.dial-val{font-family:Fraunces,serif;font-size:30px;font-weight:800;line-height:1}
+.dial-val small{font-size:13px;font-weight:400;color:var(--muted);font-family:Karla,sans-serif;margin-left:5px}
 .putt-calc{background:var(--moss-2);border:1px solid var(--line);border-radius:16px;
   padding:12px 12px 14px;margin:0 0 12px;text-align:center}
 .putt-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px}
@@ -768,13 +779,13 @@ function paintGradient(){
     </div>
     <div class="putt-calc">
       <span class="g-cap">Your read</span>
-      <div class="putt-row">
-        <button id="p-down" aria-label="Less">−</button>
-        <input id="p-dist" type="number" inputmode="decimal" step="0.5" min="0.5" max="40" value="${TILT.putt}">
-        <span class="putt-unit">paces</span>
-        <button id="p-up" aria-label="More">+</button>
+      <p class="dial-val"><span id="p-val">${TILT.putt}</span><small>paces</small></p>
+      <div class="dial-row">
+        <button id="p-down" aria-label="One less pace">−</button>
+        <input id="p-dist" type="range" min="1" max="30" step="1" value="${TILT.putt}" aria-label="Putt distance in paces">
+        <button id="p-up" aria-label="One more pace">+</button>
       </div>
-      <p class="putt-out">play it as <b>${(TILT.putt * (1 + pace/100)).toFixed(1)}</b> paces</p>
+      <p class="putt-out">play it as <b id="p-out">${Math.round(TILT.putt * (1 + pace/100))}</b> paces</p>
     </div>
     <p class="g-line">Break <b>${Math.abs(side).toFixed(1)}%</b> · slope <b>${up >= 0 ? '+' : '−'}${Math.abs(up).toFixed(1)}%</b></p>
     ${levelSVG(up, side)}
@@ -791,11 +802,13 @@ function paintGradient(){
   document.getElementById('g-zero').onclick = () => { TILT.zb = TILT.beta; TILT.zg = TILT.gamma; TILT.hold = null; paintGradient(); };
   document.getElementById('g-flip').onclick = () => { TILT.flip = !TILT.flip; paintGradient(); };
 
-  const pd = document.getElementById('p-dist');
-  const setPutt = v => { TILT.putt = Math.min(40, Math.max(0.5, Math.round(v * 2) / 2)); paintGradient(); };
-  document.getElementById('p-up').onclick = () => setPutt(TILT.putt + 0.5);
-  document.getElementById('p-down').onclick = () => setPutt(TILT.putt - 0.5);
-  pd.onchange = () => setPutt(parseFloat(pd.value) || TILT.putt);
+  bindSlider({
+    range: 'p-dist', minus: 'p-down', plus: 'p-up', val: 'p-val', out: 'p-out',
+    min: 1, max: 30,
+    get: () => TILT.putt,
+    set: v => { TILT.putt = v; },
+    calc: v => Math.round(v * (1 + pace/100))
+  });
 }
 
 async function enableTilt(){
@@ -804,7 +817,7 @@ async function enableTilt(){
 }
 
 /* ---------- pre-shot wind compass (GPS only) ---------- */
-const CMP = { heading: null, on: false, hour: null };
+const CMP = { heading: null, on: false, hour: null, yds: 150 };
 
 function currentHour(){
   if (!STATE.data) return null;
@@ -892,13 +905,23 @@ function paintCompass(){
     return;
   }
   const yardsL = Math.abs(c.head) * 0.95, yardsC = Math.abs(c.cross) * 0.85;
-  const along = c.head > 1 ? `a 150 yd shot is playing like <b>${Math.round(150 + yardsL)} yds</b> — consider a little more club`
-              : c.head < -1 ? `a 150 yd shot is playing like <b>${Math.round(150 - yardsL)} yds</b> — consider a little less club`
+  const along = c.head > 1 ? `wind is holding it up — consider a little more club`
+              : c.head < -1 ? `wind is helping — consider a little less club`
               : 'your normal number should hold';
   const side = Math.abs(c.cross) < 1 ? '' :
     ` · drifts <b>${Math.round(yardsC)} yds ${c.cross > 0 ? 'right' : 'left'}</b>`;
   el.innerHTML = compassSVG(c.rel, CMP.heading, h.wind) +
     `<div class="read"><b>${labelRel(c.rel)}</b> — ${along}${side}</div>
+     <div class="putt-calc">
+       <span class="g-cap">Your shot</span>
+       <p class="dial-val"><span id="w-val">${CMP.yds}</span><small>yards</small></p>
+       <div class="dial-row">
+         <button id="w-down" aria-label="Five yards less">−</button>
+         <input id="w-dist" type="range" min="100" max="200" step="1" value="${CMP.yds}" aria-label="Shot distance in yards">
+         <button id="w-up" aria-label="Five yards more">+</button>
+       </div>
+       <p class="putt-out">plays like <b id="w-out">${Math.round(CMP.yds + c.head * 0.95 * (CMP.yds/150))}</b> yards</p>
+     </div>
      <p class="sub">Gusting to ${Math.round(h.gust)} mph · from the ${compassPoint(h.dir)} · point the phone at your target${STATE.gps ? '' : ' · forecast is for ' + esc(STATE.label)}</p>`;
 }
 
