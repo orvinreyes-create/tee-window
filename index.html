@@ -709,6 +709,25 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 
 
 
+/* ---------- shared slider control ---------- */
+let DRAGGING = false;
+
+function bindSlider(o){
+  const r = document.getElementById(o.range);
+  if (!r) return;
+  const val = document.getElementById(o.val), out = document.getElementById(o.out);
+  const paint = v => { val.textContent = v; out.textContent = o.calc(v); };
+  const apply = v => {
+    v = Math.min(o.max, Math.max(o.min, Math.round(v)));
+    r.value = v; o.set(v); paint(v);
+  };
+  r.addEventListener('input', () => { DRAGGING = true; apply(+r.value); });
+  ['pointerup','touchend','mouseup','change','blur'].forEach(ev =>
+    r.addEventListener(ev, () => { DRAGGING = false; }));
+  document.getElementById(o.plus).onclick  = () => apply(o.get() + 1);
+  document.getElementById(o.minus).onclick = () => apply(o.get() - 1);
+}
+
 /* ---------- green reader: AimPoint-style slope ---------- */
 const TILT = { on:false, beta:null, gamma:null, zb:0, zg:0, flip:false, hold:null, putt:4 };   // putt = your read, in paces/yards
 
@@ -738,6 +757,7 @@ function levelSVG(up, side){
 const ROLL_MU = 0.062;   // typical green; slope % is distance-based, not stroke force
 
 function paintGradient(){
+  if (DRAGGING) return;
   const panel = document.getElementById('grad-panel');
   const el = document.getElementById('gradient');
   if (!panel || panel.hidden || !el) return;
@@ -882,6 +902,7 @@ function miniDial(rel, size){
 }
 
 function paintCompass(){
+  if (DRAGGING) return;
   const btn = document.getElementById('wind-toggle');
   const panel = document.getElementById('wind-panel');
   if (!btn || !panel) return;
@@ -923,6 +944,14 @@ function paintCompass(){
        <p class="putt-out">plays like <b id="w-out">${Math.round(CMP.yds + c.head * 0.95 * (CMP.yds/150))}</b> yards</p>
      </div>
      <p class="sub">Gusting to ${Math.round(h.gust)} mph · from the ${compassPoint(h.dir)} · point the phone at your target${STATE.gps ? '' : ' · forecast is for ' + esc(STATE.label)}</p>`;
+
+  bindSlider({
+    range: 'w-dist', minus: 'w-down', plus: 'w-up', val: 'w-val', out: 'w-out',
+    min: 100, max: 200,
+    get: () => CMP.yds,
+    set: v => { CMP.yds = v; },
+    calc: v => Math.round(v + c.head * 0.95 * (v / 150))
+  });
 }
 
 function compassPoint(deg){
